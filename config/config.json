@@ -1,0 +1,94 @@
+{
+  "api": {
+    "api_key": "",
+    "api_secret": "",
+    "testnet": true
+  },
+  "global": {
+    "max_stop_loss_streak": 5,
+    "database_path": "data/trading.db"
+  },
+  "pairs": [
+    {
+      "name": "SPOT-BTC-ETH",
+      "dominant_pair": "BTCUSDT",
+      "target_pair": "ETHUSDT",
+      "tick_window": 30,
+      "timeframe": "5",
+      "dominant_threshold": 1.0,
+      "target_max_threshold": 0.8,
+      "direction": 0,
+      "reverse": 0,
+      "price_change_threshold": 0.5,
+      "position_size_percent": 10.0,
+      "leverage": 1,
+      "take_profit_percent": 2.0,
+      "stop_loss_percent": 1.0,
+      "enabled": true,
+      "comment": "Spot торговля, обе стороны"
+    },
+    {
+      "name": "FUTURES-LONG-PEPE",
+      "dominant_pair": "BTCUSDT",
+      "target_pair": "PEPEUSDT",
+      "tick_window": 20,
+      "timeframe": "15",
+      "dominant_threshold": 1.5,
+      "target_max_threshold": 1.0,
+      "direction": 1,
+      "reverse": 0,
+      "price_change_threshold": 1.0,
+      "position_size_percent": 15.0,
+      "leverage": 5,
+      "take_profit_percent": 3.0,
+      "stop_loss_percent": 1.5,
+      "enabled": false,
+      "comment": "Futures, только лонг"
+    },
+    {
+      "name": "FUTURES-SHORT-WIF",
+      "dominant_pair": "BTCUSDT",
+      "target_pair": "WIFUSDT",
+      "tick_window": 0,
+      "timeframe": "60",
+      "dominant_threshold": 2.0,
+      "target_max_threshold": 1.5,
+      "direction": -1,
+      "reverse": 0,
+      "price_change_threshold": 0.8,
+      "position_size_percent": 10.0,
+      "leverage": 3,
+      "take_profit_percent": 4.0,
+      "stop_loss_percent": 2.0,
+      "enabled": false,
+      "comment": "Futures, только шорт, последняя свеча"
+    },
+    {
+      "name": "REVERSE-DOGE",
+      "dominant_pair": "BTCUSDT",
+      "target_pair": "DOGEUSDT",
+      "tick_window": 24,
+      "timeframe": "D",
+      "dominant_threshold": 3.0,
+      "target_max_threshold": 2.0,
+      "direction": 0,
+      "reverse": 1,
+      "price_change_threshold": 1.5,
+      "position_size_percent": 20.0,
+      "leverage": 2,
+      "take_profit_percent": 5.0,
+      "stop_loss_percent": 2.5,
+      "enabled": false,
+      "comment": "Обратная логика: BTC растет -> SHORT"
+    }
+  ],
+  "telegram": {
+    "enabled": false,
+    "bot_token": "",
+    "chat_id": "",
+    "notify_signals": true,
+    "notify_trades": true,
+    "notify_errors": true,
+    "notify_daily_report": true
+  }
+}
