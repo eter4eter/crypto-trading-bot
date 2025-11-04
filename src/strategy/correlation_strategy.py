@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Callable, Any
 
-from api.common import Kline
 from ..logger import logger
 from ..config import PairConfig
+from ..api.common import Kline
 from ..api.bybit_websocket_client import BybitWebSocketClient
 from ..api.bybit_client import BybitClient
 from ..api.market_data_provider import MarketDataProvider
