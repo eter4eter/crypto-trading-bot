@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock
 
 @pytest.fixture
 def event_loop():
-    """Event loop для async тестов"""
+    """Основной event loop для async тестов"""
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
@@ -17,7 +17,7 @@ def event_loop():
 
 @pytest.fixture
 def temp_db():
-    """Временная БД"""
+    """Временная база данных"""
     with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
         db_path = f.name
     yield db_path
@@ -26,37 +26,73 @@ def temp_db():
 
 
 @pytest.fixture
-def sample_config_dict():
-    """Конфигурация с НОВЫМИ параметрами"""
+def sample_strategies_config():
+    """Конфигурация с новым форматом strategies/signals согласно ТЗ"""
     return {
         "api": {
             "api_key": "test_key",
             "api_secret": "test_secret",
-            "testnet": True
+            "testnet": True,
+            "demo_mode": True,
+            "logging_level": "DEBUG"
         },
         "global": {
             "max_stop_loss_streak": 3,
             "database_path": "test.db"
         },
-        "pairs": [
-            {
-                "name": "TEST-PAIR",
-                "dominant_pair": "BTCUSDT",
-                "target_pair": "PEPEUSDT",
-                "tick_window": 5,
-                "timeframe": "5",
-                "dominant_threshold": 1.0,
-                "target_max_threshold": 0.8,
-                "direction": 0,  # -1=short, 0=any, 1=long
-                "reverse": 0,  # 0=direct, 1=reverse
-                "price_change_threshold": 0.5,  # slippage check
-                "position_size_percent": 10.0,
-                "leverage": 1,  # 1=spot, >1=futures
-                "take_profit_percent": 2.0,
-                "stop_loss_percent": 1.0,
-                "enabled": True
+        "strategies": {
+            "WIF-USDT-test": {
+                "trade_pairs": ["WIFUSDT"],
+                "leverage": 5,
+                "tick_window": 10,
+                "price_change_threshold": 0.05,
+                "stop_take_percent": 0.005,
+                "position_size": 100,
+                "direction": 0,
+                "enabled": True,
+                "signals": {
+                    "btc_correlation": {
+                        "index": "BTCUSDT",
+                        "frame": "1",
+                        "tick_window": 30,
+                        "index_change_threshold": 1.0,
+                        "target": 0.75,
+                        "direction": 0,
+                        "reverse": 0
+                    },
+                    "eth_momentum": {
+                        "index": "ETHUSDT",
+                        "frame": "5",
+                        "tick_window": 20,
+                        "index_change_threshold": 1.5,
+                        "target": 1.0,
+                        "direction": 1,
+                        "reverse": 1
+                    }
+                }
+            },
+            "BTC-scalping-test": {
+                "trade_pairs": ["BTCUSDT"],
+                "leverage": 3,
+                "tick_window": 0,
+                "price_change_threshold": 0.02,
+                "stop_take_percent": 0.008,
+                "position_size": 200,
+                "direction": 1,
+                "enabled": True,
+                "signals": {
+                    "momentum_signal": {
+                        "index": "BTCUSDT",
+                        "frame": "5s",
+                        "tick_window": 0,
+                        "index_change_threshold": 0.5,
+                        "target": 0.8,
+                        "direction": 1,
+                        "reverse": 0
+                    }
+                }
             }
-        ],
+        },
         "telegram": {
             "enabled": False,
             "bot_token": "",
@@ -70,10 +106,10 @@ def sample_config_dict():
 
 
 @pytest.fixture
-def temp_config_file(sample_config_dict):
-    """Временный конфиг файл"""
+def temp_strategies_config_file(sample_strategies_config):
+    """Временный конфиг файл с форматом strategies"""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump(sample_config_dict, f)
+        json.dump(sample_strategies_config, f)
         config_path = f.name
     yield config_path
     if os.path.exists(config_path):
@@ -82,7 +118,7 @@ def temp_config_file(sample_config_dict):
 
 @pytest.fixture
 def mock_kline():
-    """Mock Kline dataclass (NEW)"""
+    """Мок Kline объект"""
     from src.api.common import Kline
     return Kline(
         timestamp=int(datetime.now().timestamp() * 1000),
@@ -96,44 +132,36 @@ def mock_kline():
 
 
 @pytest.fixture
-def mock_klines_list(mock_kline):
-    """Список из 30 klines для истории"""
+def mock_klines_sequence():
+    """Последовательность klines для тестирования tick_window"""
     from src.api.common import Kline
     klines = []
-    for i in range(30):
+    base_price = 50000.0
+    
+    # Создаем последовательность с ростом 1% на каждой свече
+    for i in range(35):  # 30 истории + 5 новых
+        price = base_price * (1.01 ** i)  # Рост 1% на каждой свече
         klines.append(Kline(
-            timestamp=int((datetime.now().timestamp() - i * 300) * 1000),
-            open=50000.0 + i,
-            high=50100.0 + i,
-            low=49900.0 + i,
-            close=50050.0 + i,
-            volume=1234.5,
-            confirm=True,
+            timestamp=int((datetime.now().timestamp() + i * 300) * 1000),
+            open=price,
+            high=price * 1.002,
+            low=price * 0.998,
+            close=price,
+            volume=1000.0 + i,
+            confirm=True
         ))
-    return list(reversed(klines))
+    
+    return klines
 
 
 @pytest.fixture
-def mock_client():
-    """Mock клиент с ИСПРАВЛЕННЫМ API"""
+def mock_bybit_client(mock_klines_sequence):
+    """Мок Bybit REST API клиент"""
     client = AsyncMock()
-
-    # ВАЖНО: теперь get_klines возвращает list[Kline], а не list[dict]
-    from src.api.common import Kline
-    klines = [
-        Kline(
-            timestamp=int((datetime.now().timestamp() - i * 300) * 1000),
-            open=50000.0 + i,
-            high=50100.0 + i,
-            low=49900.0 + i,
-            close=50050.0 + i,
-            volume=1234.5,
-            confirm=True,
-        )
-        for i in range(30)
-    ]
-
-    client.get_klines.return_value = list(reversed(klines))
+    
+    # Возвращаем Kline объекты
+    client.get_klines.return_value = mock_klines_sequence[:30]  # 30 свечей
+    
     client.get_wallet_balance.return_value = {
         "list": [{"totalEquity": "10000.00"}]
     }
@@ -143,16 +171,18 @@ def mock_client():
     }
     client.get_position.return_value = None
     client.close.return_value = None
-
-    # NEW: Singleton флаг
-    client._initialized = False
-
+    client.get_stats.return_value = {
+        "request_count": 10,
+        "error_count": 0,
+        "error_rate": "0.0%"
+    }
+    
     return client
 
 
 @pytest.fixture
 def mock_ws_client():
-    """Mock WebSocket клиент (NEW)"""
+    """Мок WebSocket клиент"""
     ws_client = AsyncMock()
     ws_client.connect.return_value = None
     ws_client.subscribe_kline.return_value = None
@@ -166,35 +196,21 @@ def mock_ws_client():
 
 
 @pytest.fixture
-def sample_signal():
-    """Signal с НОВЫМИ полями"""
-    from src.strategy.correlation_strategy import Signal
-    return Signal(
+def sample_signal_result():
+    """Пример SignalResult для нового формата"""
+    from src.strategy.multi_signal_strategy import SignalResult
+    return SignalResult(
+        signal_name="btc_correlation",
+        strategy_name="WIF-USDT-test",
         action="Buy",
-        target_price=0.00001075,
-        dominant_change=1.23,
+        index_pair="BTCUSDT",
+        target_pairs=["WIFUSDT"],
+        target_price=1.0567,
+        index_change=1.23,
         target_change=0.75,
+        triggered=True,
         slippage_ok=True,
         timestamp=datetime.now(),
-    )
-
-
-@pytest.fixture
-def sample_order_record():
-    """OrderRecord из models.py"""
-    from src.storage.models import OrderRecord
-    return OrderRecord(
-        id=1,
-        pair_name="TEST-PAIR",
-        symbol="PEPEUSDT",
-        order_id="test_order_123",
-        side="Buy",
-        quantity=100.0,
-        entry_price=0.00001075,
-        take_profit=0.00001096,
-        stop_loss=0.00001064,
-        status="OPEN",
-        opened_at=datetime.now(),
     )
 
 
@@ -203,3 +219,5 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "unit: unit tests")
     config.addinivalue_line("markers", "integration: integration tests")
     config.addinivalue_line("markers", "slow: slow tests")
+    config.addinivalue_line("markers", "strategy: strategy tests")
+    config.addinivalue_line("markers", "config: configuration tests")
