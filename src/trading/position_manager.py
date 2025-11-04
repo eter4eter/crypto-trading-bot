@@ -1,9 +1,10 @@
 from datetime import datetime
 
 from ..logger import logger
-from ..config import Config, PairConfig
+from ..config import Config, PairConfig, StrategyConfig
 from ..api.bybit_client import BybitClient
 from ..strategy.correlation_strategy import Signal
+from ..strategy.multi_signal_strategy import SignalResult
 from ..storage.database import Database
 from ..storage.models import OrderRecord, SignalRecord
 from ..notifications.telegram_notifier import TelegramNotifier
@@ -41,17 +42,56 @@ class PositionManager:
 
     async def initialize(self):
         """Инициализация: установка плечей"""
-        logger.info("Setting leverage for all pairs...")
+        logger.info("Setting leverage for all enabled strategies...")
 
         # Получаем баланс кошелька
         await self._update_wallet_balance()
 
+        # Устанавливаем плечи для всех торговых пар из strategies
+        processed_pairs = set()
+        
+        for strategy_config in self.config.enabled_strategies.values():
+            if not strategy_config.enabled:
+                continue
+                
+            logger.info(f"[{strategy_config.name}] Initializing strategy...")
+            
+            for trade_pair in strategy_config.trade_pairs:
+                if trade_pair in processed_pairs:
+                    continue  # Уже обработали эту пару
+                    
+                processed_pairs.add(trade_pair)
+                
+                if strategy_config.is_futures():
+                    logger.info(f"  Setting {strategy_config.leverage}x leverage for {trade_pair}")
+
+                    try:
+                        success = await self.client.set_leverage(
+                            category="linear",
+                            symbol=trade_pair,
+                            leverage=strategy_config.leverage
+                        )
+
+                        if success:
+                            logger.info(f"✓ [{strategy_config.name}] {trade_pair} leverage: {strategy_config.leverage}x")
+                        else:
+                            logger.warning(f"✗ [{strategy_config.name}] Failed to set leverage for {trade_pair}")
+
+                    except Exception as e:
+                        logger.warning(f"  ⚠️ Leverage error for {trade_pair} (continuing): {e}")
+                else:
+                    logger.info(f"  [{strategy_config.name}] {trade_pair} - spot trading (no leverage)")
+
+        # Поддержка старого формата pairs (обратная совместимость)
         for pair in self.config.pairs:
             if not pair.enabled:
-                logger.info(f"[{pair.name}] Pair is disabled")
                 continue
-
-            logger.info(f"[{pair.name}] Initializing...")
+                
+            if pair.target_pair in processed_pairs:
+                continue
+                
+            processed_pairs.add(pair.target_pair)
+            logger.info(f"[{pair.name}] Initializing legacy pair...")
 
             if pair.is_futures():
                 logger.info(f"  Setting {pair.leverage}x leverage for {pair.target_pair}")
@@ -70,7 +110,6 @@ class PositionManager:
 
                 except Exception as e:
                     logger.warning(f"  ⚠️ Leverage error (continuing): {e}")
-
             else:
                 logger.info(f"  Spot trading (no leverage needed)")
 
@@ -90,9 +129,173 @@ class PositionManager:
         except Exception as e:
             logger.error(f"Error getting wallet balance: {e}")
 
+    async def execute_multi_signal(self, sig_result: SignalResult) -> bool:
+        """
+        Исполнение мультисигнального торгового сигнала согласно ТЗ
+        
+        Args:
+            sig_result: Результат сигнала от MultiSignalStrategy
+            
+        Returns:
+            True если позиция открыта
+        """
+        
+        # Сохраняем сигнал в БД
+        signal_record = SignalRecord(
+            pair_name=sig_result.strategy_name,
+            action=sig_result.action,
+            dominant_change=sig_result.index_change,
+            target_change=sig_result.target_change,
+            target_price=sig_result.target_price,
+            executed=False
+        )
+
+        signal_id = self.database.save_signal(signal_record)
+        logger.debug(f"Multi signal saved to DB: ID={signal_id}")
+
+        # Проверяем лимит stop-loss
+        if self.stop_loss_streak >= self.config.max_stop_loss_streak:
+            logger.error(
+                f"⛔ Stop-loss streak limit reached ({self.stop_loss_streak}). "
+                f"Trading halted for safety."
+            )
+            await self.notifier.notify_error(
+                f"Trading halted: {self.stop_loss_streak} consecutive stop-losses"
+            )
+            return False
+
+        # Проверяем открытую позицию по имени стратегии
+        if sig_result.strategy_name in self.open_positions:
+            logger.warning(f"[{sig_result.strategy_name}] Position already open, skipping signal")
+            return False
+
+        # Открываем позицию для мультисигнала
+        success = await self._open_multi_position(sig_result)
+
+        if success:
+            # Отмечаем сигнал как исполненный
+            signal_record.executed = True
+
+        return success
+    
+    async def _open_multi_position(self, sig_result: SignalResult) -> bool:
+        """Открытие позиции на основе мультисигнала"""
+        
+        # Получаем конфигурацию стратегии
+        strategy_config = self.config.strategies.get(sig_result.strategy_name)
+        if not strategy_config:
+            logger.error(f"Strategy config not found: {sig_result.strategy_name}")
+            return False
+            
+        # Обновляем баланс
+        await self._update_wallet_balance()
+        
+        if self.wallet_balance <= 0:
+            logger.error(f"[{sig_result.strategy_name}] Invalid wallet balance: ${self.wallet_balance}")
+            return False
+        
+        # Рассчитываем размер позиции в USDT
+        position_size_usdt = strategy_config.position_size
+        
+        # Проверяем минимальный размер
+        if position_size_usdt < 5.0:
+            logger.warning(
+                f"[{sig_result.strategy_name}] Position size too small: ${position_size_usdt:.2f}. "
+                f"Minimum 5 USDT required."
+            )
+            return False
+        
+        # Выбираем первую торговую пару (можно расширить для множественных пар)
+        target_pair = sig_result.target_pairs[0] if sig_result.target_pairs else strategy_config.trade_pairs[0]
+        
+        # Расчет количества
+        quantity = position_size_usdt / sig_result.target_price
+        qty_str = f"{quantity:.4f}"
+        
+        # Определяем сторону и цены TP/SL
+        side = "Buy" if sig_result.action == "Buy" else "Sell"
+        
+        if sig_result.action == "Buy":
+            # Long позиция
+            take_profit = sig_result.target_price * (1 + strategy_config.stop_take_percent)
+            stop_loss = sig_result.target_price * (1 - strategy_config.stop_take_percent)
+        else:
+            # Short позиция
+            take_profit = sig_result.target_price * (1 - strategy_config.stop_take_percent)
+            stop_loss = sig_result.target_price * (1 + strategy_config.stop_take_percent)
+        
+        logger.info(f"")
+        logger.info(f"📊 ═══ Opening Multi Position [{sig_result.strategy_name}:{sig_result.signal_name}] ═══")
+        logger.info(f"  Pair: {target_pair}")
+        logger.info(f"  Side: {side}")
+        logger.info(f"  Entry: ${sig_result.target_price:.8f}")
+        logger.info(f"  Quantity: {qty_str}")
+        logger.info(f"  Take-Profit: ${take_profit:.8f} (+{strategy_config.stop_take_percent*100:.2f}%)")
+        logger.info(f"  Stop-Loss: ${stop_loss:.8f} (-{strategy_config.stop_take_percent*100:.2f}%)")
+        logger.info(f"  Index change: {sig_result.index_change:+.3f}%")
+        logger.info(f"  Target change: {sig_result.target_change:+.3f}%")
+        
+        # Размещаем ордер
+        result = await self.client.place_market_order(
+            category=strategy_config.get_market_category(),
+            symbol=target_pair,
+            side=side,
+            qty=qty_str,
+            take_profit=f"{take_profit:.8f}",
+            stop_loss=f"{stop_loss:.8f}",
+            position_idx=0
+        )
+        
+        if not result:
+            logger.error(f"✗ [{sig_result.strategy_name}] Failed to place order")
+            return False
+        
+        # Создаем запись об ордере
+        order = OrderRecord(
+            pair_name=sig_result.strategy_name,  # Используем имя стратегии как pair_name
+            symbol=target_pair,
+            order_id=result.get("orderId", ""),
+            side=side,
+            quantity=quantity,
+            entry_price=sig_result.target_price,
+            take_profit=take_profit,
+            stop_loss=stop_loss,
+            status="OPEN",
+            opened_at=datetime.now()
+        )
+        
+        # Сохраняем в БД
+        order.id = self.database.save_order(order)
+        
+        # Добавляем в открытые позиции
+        self.open_positions[sig_result.strategy_name] = order
+        
+        # Добавляем в трекер для мониторинга
+        self.order_tracker.track_order(order)
+        
+        # Обновляем статистику
+        self.total_trades += 1
+        
+        logger.info(f"✅ [{sig_result.strategy_name}:{sig_result.signal_name}] Position opened successfully")
+        logger.info(f"   Order ID: {order.order_id}")
+        logger.info(f"   Total trades: {self.total_trades}")
+        logger.info(f"")
+        
+        # Отправляем уведомление
+        await self.notifier.notify_signal(
+            pair_name=sig_result.strategy_name,
+            side=side,
+            entry_price=sig_result.target_price,
+            quantity=quantity,
+            take_profit=take_profit,
+            stop_loss=stop_loss
+        )
+        
+        return True
+
     async def execute_signal(self, pair: PairConfig, signal: Signal) -> bool:
         """
-        Исполнение торгового сигнала
+        Исполнение торгового сигнала (старый формат для обратной совместимости)
 
         1. Сохранение сигнала в БД
         2. Проверка наличия открытой позиции
@@ -143,7 +346,7 @@ class PositionManager:
         return success
 
     async def _open_position(self, pair: PairConfig, signal: Signal) -> bool:
-        """Открытие новой позиции"""
+        """Открытие новой позиции (старый формат)"""
 
         # Обновляем баланс перед открытием позиции
         await self._update_wallet_balance()
