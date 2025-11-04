@@ -149,16 +149,16 @@ class TradingBot:
 
             logger.info(f"[{strategy_name}:{sig_result.signal_name}] Processing signal: {sig_result.action}")
 
-            # TODO: Адаптировать position_manager для работы с SignalResult
-            # success = await self.position_manager.execute_multi_signal(sig_result)
+            # Исполняем мультисигнал через position_manager
+            success = await self.position_manager.execute_multi_signal(sig_result)
             
-            # Пока логируем сигнал
-            logger.info(f"[{strategy_name}:{sig_result.signal_name}] ✅ Signal logged (position_manager update needed)")
-            
-            # TODO: Сброс буферов после успешного открытия
-            # if success:
-            #     strategy = self.strategies[strategy_name]
-            #     await strategy.reset_buffers()
+            if success:
+                # Сбрасываем буферы после успешного открытия
+                strategy = self.strategies[strategy_name]
+                await strategy.reset_buffers()
+                logger.info(f"[{strategy_name}:{sig_result.signal_name}] ✅ Signal processed successfully")
+            else:
+                logger.warning(f"[{strategy_name}:{sig_result.signal_name}] Failed to execute signal")
 
         except Exception as e:
             logger.error(f"[{sig_result.strategy_name}] Error handling signal: {e}", exc_info=True)
@@ -248,40 +248,6 @@ class TradingBot:
         logger.info("═" * 70)
         logger.info("✅ Bot stopped successfully")
         logger.info("═" * 70)
-            
-    async def _handle_signal(self, sig_result: SignalResult):
-        """
-        Обработка сигнала от мультисигнальной стратегии
-        """
-        try:
-            strategy_name = sig_result.strategy_name
-            
-            if self.position_manager.has_position(strategy_name):
-                logger.debug(f"[{strategy_name}] Position already open, skipping signal")
-                return
-
-            if not sig_result.slippage_ok:
-                logger.warning(f"[{strategy_name}] Signal rejected: slippage exceeded")
-                return
-
-            logger.info(f"[{strategy_name}:{sig_result.signal_name}] Processing signal: {sig_result.action}")
-
-            # TODO: Адаптировать position_manager для работы с SignalResult
-            # success = await self.position_manager.execute_multi_signal(sig_result)
-            
-            # Пока логируем сигнал
-            logger.info(f"[{strategy_name}:{sig_result.signal_name}] ✅ Signal logged (position_manager update needed)")
-            
-            # TODO: Сброс буферов после успешного открытия
-            # if success:
-            #     strategy = self.strategies[strategy_name]
-            #     await strategy.reset_buffers()
-
-        except Exception as e:
-            logger.error(f"[{sig_result.strategy_name}] Error handling signal: {e}", exc_info=True)
-            await self.notifier.notify_error(
-                f"Error handling signal for {sig_result.strategy_name}: {str(e)}"
-            )
 
     def _log_status(self, cycle: int):
         """Логирование текущего статуса"""
