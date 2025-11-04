@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Callable, Any, Literal
 
-from ..config_tz import StrategyConfigTZ, SignalConfigTZ
+from ..config import StrategyConfig, SignalConfig
 from ..api.bybit_client import BybitClient
 from ..api.bybit_websocket_client import BybitWebSocketClient
 from ..api.common import Kline
@@ -50,7 +50,7 @@ class MultiSignalStrategy:
     
     def __init__(
         self,
-        config: StrategyConfigTZ,
+        config: StrategyConfig,
         rest_client: BybitClient,
         ws_client: BybitWebSocketClient
     ):
@@ -190,6 +190,20 @@ class MultiSignalStrategy:
                 logger.error(f"[{self.config.name}] Ошибка подписки на {pair}: {e}")
         
         logger.info(f"[{self.config.name}] ✅ Подписки активированы для {len(unique_pairs)} пар")
+    
+    async def stop(self):
+        """Остановка стратегии"""
+        logger.info(f"[{self.config.name}] ⏹ Останавливаем стратегию...")
+        
+        # Очищаем буферы
+        for signal_name in self.signal_buffers.keys():
+            async with self.signal_locks[signal_name]:
+                buffer = self.signal_buffers[signal_name]
+                buffer["index_prices"].clear()
+                for target_buffer in buffer["target_prices"].values():
+                    target_buffer.clear()
+        
+        logger.info(f"[{self.config.name}] ✅ Стратегия остановлена")
 
     async def _on_kline_data(self, symbol: str, kline: Kline):
         """Обработка входящих kline данных"""
@@ -215,7 +229,7 @@ class MultiSignalStrategy:
             except Exception as e:
                 logger.error(f"[{self.config.name}] Ошибка обработки kline для {signal_name}: {e}")
 
-    async def _check_signal(self, signal_name: str, signal_config: SignalConfigTZ):
+    async def _check_signal(self, signal_name: str, signal_config: SignalConfig):
         """Проверка условий конкретного сигнала согласно ТЗ"""
         
         buffer = self.signal_buffers[signal_name]
@@ -267,7 +281,8 @@ class MultiSignalStrategy:
             
             # Проверка целевого значения
             if abs(target_change) >= signal_config.target:
-                continue  # Превышен максимальный порог target пары
+                continue  # Превышен максималь
+            ный порог target пары
             
             # Проверка корреляции (одинаковое направление)
             same_direction = (
@@ -291,8 +306,10 @@ class MultiSignalStrategy:
             if not self.config.should_take_signal(action):
                 continue
             
-            # Проверяем проскальзывание (базовая реализация)
-            slippage_ok = True  # TODO: реализовать проверку проскальзывания
+            # Проверяем проскальзывание (реальная реализация)
+            current_price = await self._get_current_price(trade_pair)
+            price_diff_percent = abs((current_price - target_last) / target_last) * 100
+            slippage_ok = price_diff_percent <= self.config.price_change_threshold
             
             # Создаем результат сигнала
             signal_result = SignalResult(
@@ -301,7 +318,7 @@ class MultiSignalStrategy:
                 action=action,
                 index_pair=signal_config.index,
                 target_pairs=[trade_pair],
-                target_price=target_last,
+                target_price=current_price,  # Используем текущую цену
                 index_change=index_change,
                 target_change=target_change,
                 triggered=True,
@@ -314,7 +331,7 @@ class MultiSignalStrategy:
             logger.info(f"🎯 СИГНАЛ [{self.config.name}:{signal_name}] {action}")
             logger.info(f"   Index ({signal_config.index}): {index_change:+.3f}%")
             logger.info(f"   Target ({trade_pair}): {target_change:+.3f}%")
-            logger.info(f"   Price: ${target_last:.8f}")
+            logger.info(f"   Price: ${current_price:.8f} (slippage: {price_diff_percent:.2f}%)")
             logger.info(f"   Reverse: {'ON' if signal_config.reverse else 'OFF'}")
             logger.info(f"   Window: {signal_config.tick_window}")
             logger.info(f"")
@@ -324,6 +341,25 @@ class MultiSignalStrategy:
                 await self.signal_callbacks[signal_name](signal_result)
             elif self.strategy_callback:
                 await self.strategy_callback(signal_result)
+    
+    async def _get_current_price(self, symbol: str) -> float:
+        """Получение текущей цены символа"""
+        try:
+            ticker = await self.rest_client.get_ticker(
+                category=self.config.get_market_category(),
+                symbol=symbol
+            )
+            
+            if ticker and 'result' in ticker and 'list' in ticker['result']:
+                ticker_data = ticker['result']['list'][0]
+                return float(ticker_data.get('lastPrice', 0))
+            
+            logger.warning(f"Failed to get current price for {symbol}, using 0")
+            return 0.0
+            
+        except Exception as e:
+            logger.error(f"Error getting current price for {symbol}: {e}")
+            return 0.0
 
     def set_signal_callback(self, signal_name: str, callback: Callable):
         """Установка callback для конкретного сигнала"""
