@@ -2,17 +2,19 @@ import asyncio
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Callable, Any
 
+from api.common import Kline
 from ..logger import logger
 from ..config import PairConfig
 from ..api.bybit_websocket_client import BybitWebSocketClient
 from ..api.bybit_client import BybitClient
+from ..api.market_data_provider import MarketDataProvider
 
 
 @dataclass
 class Signal:
-    action: Literal["BUY", "SELL", "NONE"]
+    action: Literal["Buy", "Sell", "None"]
     target_price: float
     dominant_change: float
     target_change: float
@@ -44,6 +46,12 @@ class CorrelationStrategy:
         self.config = config
         self.rest_client = rest_client
         self.ws_client = ws_client
+
+        self.data_provider = MarketDataProvider(
+            config=config,
+            rest_client=rest_client,
+            ws_client=ws_client
+        )
 
         # буферы свечей (close prices)
         if config.tick_window > 0:
@@ -109,8 +117,8 @@ class CorrelationStrategy:
                 return False
 
             # Берем последнюю закрытую свечу (предпоследняя, т.к. последняя - текущая)
-            self.last_dominant_close = dominant_klines[-2]['close']
-            self.last_target_close = target_klines[-2]['close']
+            self.last_dominant_close = dominant_klines[-2].close
+            self.last_target_close = target_klines[-2].close
 
             logger.info(
                 f"[{self.config.name}] ✅ Last candle loaded: "
@@ -158,63 +166,39 @@ class CorrelationStrategy:
     async def start(self):
         """Запуск стратегии с подписками на kline streams"""
 
-        # Подписываемся на доминирующую пару (spot)
-        self.ws_client.subscribe_kline(
-            category=self.config.get_market_category(),
-            symbol=self.config.dominant_pair,
-            interval=self.config.timeframe,
-            callback=self._on_dominant_kline
+        self.data_provider.set_callbacks(
+            dominant_callback=self._on_dominant_kline,
+            target_callback=self._on_target_kline,
         )
 
-        # Подписываемся на целевую пару (futures)
-        self.ws_client.subscribe_kline(
-            category=self.config.get_market_category(),
-            symbol=self.config.target_pair,
-            interval=self.config.timeframe,
-            callback=self._on_target_kline
-        )
+        await self.data_provider.start()
 
         logger.info(f"[{self.config.name}] ✅ Kline subscriptions active")
 
-    async def _on_dominant_kline(self, symbol: str, kline: dict):
-        """Callback при новой свече доминирующей пары"""
+    async def stop(self):
+        """Остановка стратегии"""
+        logger.info(f"[{self.config.name}] Stopping strategy...")
+        await self.data_provider.stop()
+        logger.info(f"[{self.config.name}] Strategy stopped")
 
-        # Обрабатываем только закрытые свечи
-        if not kline["confirm"]:
-            return
-
-        close_price = kline["close"]
-
+    async def _on_dominant_kline(self, symbol: str, kline: Kline):
+        """Обработка kline доминирующей пары"""
         async with self.lock:
-            if self.config.tick_window > 0:
-                self.dominant_closes.append(close_price)
-            else:
-                self.last_dominant_close = close_price
-
-        logger.debug(f"[{self.config.name}] 📊 Dominant candle: ${close_price:.2f}")
+            if kline.close > 0:
+                self.dominant_closes.append(kline.close)
+                self.last_dominant_close = kline.close
+                await self._check_signal_async()
 
         # Проверяем сигнал
         await self._check_signal_async()
 
-    async def _on_target_kline(self, symbol: str, kline: dict):
-        """Callback при новой свече целевой пары"""
-
-        # Обрабатываем только закрытые свечи
-        if not kline["confirm"]:
-            return
-
-        close_price = kline["close"]
-
+    async def _on_target_kline(self, symbol: str, kline: Kline):
+        """Обработка kline целевой пары"""
         async with self.lock:
-            if self.config.tick_window > 0:
-                self.target_closes.append(close_price)
-            else:
-                self.last_target_close = close_price
-
-        logger.debug(f"[{self.config.name}] 📊 Target candle: ${close_price:.8f}")
-
-        # Проверяем сигнал
-        await self._check_signal_async()
+            if kline.close > 0:
+                self.target_closes.append(kline.close)
+                self.last_target_close = kline.close
+                await self._check_signal_async()
 
     # async def update_ticks(self) -> bool:
     #     """
@@ -269,14 +253,13 @@ class CorrelationStrategy:
 
         if self.config.tick_window > 0:
 
-            # Ждем заполнения буферов
-            if len(self.dominant_closes) < self.config.tick_window:
-                return
-            if len(self.target_closes) < self.config.tick_window:
-                return
-
-            # Копируем данные под lock
             async with self.lock:
+                # Ждем заполнения буферов
+                if len(self.dominant_closes) < self.config.tick_window:
+                    return
+                if len(self.target_closes) < self.config.tick_window:
+                    return
+
                 dominant_first = self.dominant_closes[0]
                 dominant_last = self.dominant_closes[-1]
                 target_first = self.target_closes[0]
@@ -285,7 +268,7 @@ class CorrelationStrategy:
         else:
             # tick_window=0: используем только последнюю свечу
             # Сравниваем с предыдущей (которую мы сохранили)
-            if not hasattr(self, '_prev_dominant') or not hasattr(self, '_prev_target'):
+            if not hasattr(self, "_prev_dominant") or not hasattr(self, "_prev_target"):
                 # Первый запуск - сохраняем текущие значения
                 self._prev_dominant = self.last_dominant_close
                 self._prev_target = self.last_target_close
@@ -299,6 +282,10 @@ class CorrelationStrategy:
             # Обновляем предыдущие значения
             self._prev_dominant = dominant_last
             self._prev_target = target_last
+
+        if dominant_first == 0 or target_first == 0:
+            logger.warning(f"[{self.config.name}] Zero price detected, skipping")
+            return
 
         # Расчет изменений
         dominant_change = ((dominant_last - dominant_first) / dominant_first) * 100
@@ -322,7 +309,7 @@ class CorrelationStrategy:
             return
 
         # Генерируем сигнал
-        raw_action = "BUY" if dominant_change > 0 else "SELL"
+        raw_action = "Buy" if dominant_change > 0 else "Sell"
         action = self.config.apply_reverse_logic(action=raw_action)
 
         # Проверяем направление (direction)
@@ -331,6 +318,8 @@ class CorrelationStrategy:
                 f"[{self.config.name}] Signal {action} filtered by direction={self.config.direction}"
             )
             return
+
+        self.signal_price = target_last
 
         # Проверка проскальзывания
         slippage_ok = self._check_slippage(target_last)
@@ -357,11 +346,10 @@ class CorrelationStrategy:
 
         # Вызываем callback
         if self.signal_callback and slippage_ok:
-            await self.signal_callback(signal)
+            await self.signal_callback(self.config, signal)
 
     def _check_slippage(self, signal_price: float) -> bool:
         """Проверка проскальзывания"""
-        # TODO: проверить работоспособность self.signal_price не обновляется
 
         if self.signal_price == 0:
             return True  # Нет данных для проверки
@@ -378,83 +366,11 @@ class CorrelationStrategy:
 
         return True
 
-    def set_signal_callback(self, callback):
+    def set_signal_callback(self, callback: Callable[[PairConfig, Signal], Any]):
         """Установка callback для сигналов"""
         self.signal_callback = callback
 
-    # async def check_signal(self) -> Signal:
-    #     """
-    #     Проверка условий для генерации сигнала
-    #
-    #     Алгоритм:
-    #     1. Буфер должен быть полным
-    #     2. Изменение BTC (первый→последний) > dominant_threshold
-    #     3. Целевая пара движется в ту же сторону
-    #     4. Изменение целевой пары < target_max_threshold
-    #
-    #     Returns:
-    #         Signal с действием BUY/SELL/NONE
-    #     """
-    #
-    #     # Проверка 1: Буфер заполнен
-    #     if len(self.dominant_closes) < self.config.tick_window:
-    #         return Signal(Action.NONE, 0, 0, 0)
-    #
-    #     # Расчет изменений (первый → последний)
-    #     dominant_first = self.dominant_closes[0]
-    #     dominant_last = self.dominant_closes[-1]
-    #     dominant_change = ((dominant_last - dominant_first) / dominant_first) * 100
-    #
-    #     target_first = self.target_closes[0]
-    #     target_last = self.target_closes[-1]
-    #     target_change = ((target_last - target_first) / target_first) * 100
-    #
-    #     # Проверка 2: BTC превысила порог
-    #     if abs(dominant_change) < self.config.dominant_threshold:
-    #         logger.debug(
-    #             f"[{self.config.name}] BTC change {dominant_change:+.3f}% "
-    #             f"< threshold {self.config.dominant_threshold}%"
-    #         )
-    #         return Signal(Action.NONE, target_last, dominant_change, target_change)
-    #
-    #     # Проверка 3: Корреляция направления
-    #     same_direction = (
-    #             (dominant_change > 0 and target_change > 0) or
-    #             (dominant_change < 0 and target_change < 0)
-    #     )
-    #
-    #     if not same_direction:
-    #         logger.debug(
-    #             f"[{self.config.name}] No correlation: "
-    #             f"BTC {dominant_change:+.3f}%, Target {target_change:+.3f}%"
-    #         )
-    #         return Signal(Action.NONE, target_last, dominant_change, target_change)
-    #
-    #     # Проверка 4: Целевая пара не превысила максимум
-    #     if abs(target_change) >= self.config.target_max_threshold:
-    #         logger.debug(
-    #             f"[{self.config.name}] Target exceeded max: "
-    #             f"{abs(target_change):.3f}% >= {self.config.target_max_threshold}%"
-    #         )
-    #         return Signal(Action.NONE, target_last, dominant_change, target_change)
-    #
-    #     # ✅ Все условия выполнены - генерируем сигнал
-    #     action = Action.BUY if dominant_change > 0 else Action.SELL
-    #
-    #     self.signals_generated += 1
-    #
-    #     logger.info("")
-    #     logger.info(f"🎯 ═══ SIGNAL GENERATED [{self.config.name}] ═══")
-    #     logger.info(f"  Action: {action}")
-    #     logger.info(f"  BTC change: {dominant_change:+.3f}% (threshold: {self.config.dominant_threshold}%)")
-    #     logger.info(f"  Target change: {target_change:+.3f}% (max: {self.config.target_max_threshold}%)")
-    #     logger.info(f"  Target price: ${target_last:.8f}")
-    #     logger.info(f"  Signal #{self.signals_generated}")
-    #     logger.info("")
-    #
-    #     return Signal(action, target_last, dominant_change, target_change)
-
-    def reset_buffers(self):
+    async def reset_buffers(self):
         """Сброс буферов (после сделки нужно перезагрузить историю)"""
         if self.config.tick_window > 0:
             async with self.lock:

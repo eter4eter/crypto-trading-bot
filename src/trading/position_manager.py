@@ -47,17 +47,32 @@ class PositionManager:
         await self._update_wallet_balance()
 
         for pair in self.config.pairs:
-            if pair.enabled:
-                success = await self.client.set_leverage(
-                    category="linear",
-                    symbol=pair.target_pair,
-                    leverage=pair.leverage
-                )
+            if not pair.enabled:
+                logger.info(f"[{pair.name}] Pair is disabled")
+                continue
 
-                if success:
-                    logger.info(f"✓ [{pair.name}] Leverage: {pair.leverage}x")
-                else:
-                    logger.warning(f"✗ [{pair.name}] Failed to set leverage")
+            logger.info(f"[{pair.name}] Initializing...")
+
+            if pair.is_futures():
+                logger.info(f"  Setting {pair.leverage}x leverage for {pair.target_pair}")
+
+                try:
+                    success = await self.client.set_leverage(
+                        category="linear",
+                        symbol=pair.target_pair,
+                        leverage=pair.leverage
+                    )
+
+                    if success:
+                        logger.info(f"✓ [{pair.name}] Leverage: {pair.leverage}x")
+                    else:
+                        logger.warning(f"✗ [{pair.name}] Failed to set leverage")
+
+                except Exception as e:
+                    logger.warning(f"  ⚠️ Leverage error (continuing): {e}")
+
+            else:
+                logger.info(f"  Spot trading (no leverage needed)")
 
     async def _update_wallet_balance(self):
         """Обновление баланса кошелька"""
@@ -153,9 +168,9 @@ class PositionManager:
         qty_str = f"{quantity:.4f}"
 
         # Определяем сторону и цены TP/SL
-        side = "Buy" if signal.action == "BUY" else "Sell"
+        side = "Buy" if signal.action == "Buy" else "Sell"
 
-        if signal.action == "BUY":
+        if signal.action == "Buy":
             # Long позиция
             take_profit = signal.target_price * (1 + pair.take_profit_percent / 100)
             stop_loss = signal.target_price * (1 - pair.stop_loss_percent / 100)
@@ -191,7 +206,7 @@ class PositionManager:
         order = OrderRecord(
             pair_name=pair.name,
             symbol=pair.target_pair,
-            order_id=result.get('orderId', ''),
+            order_id=result.get("orderId", ""),
             side=side,
             quantity=quantity,
             entry_price=signal.target_price,

@@ -6,6 +6,8 @@ from logging.handlers import RotatingFileHandler
 
 
 def setup_logger(name: str = "trading_bot", level: str = "INFO") -> logging.Logger:
+    global logger
+
     level = getattr(logging, level.upper())
 
     Path("logs").mkdir(exist_ok=True)
@@ -50,4 +52,4 @@ def setup_logger(name: str = "trading_bot", level: str = "INFO") -> logging.Logg
     return logger
 
 
-logger = setup_logger()
+logger = setup_logger(level="DEBUG")

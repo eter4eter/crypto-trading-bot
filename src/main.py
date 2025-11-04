@@ -2,39 +2,37 @@ import asyncio
 import signal
 from datetime import datetime
 
-from .logger import logger
-from .config import Config
-from .api.bybit_client import BybitClient
-from .strategy.correlation_strategy import CorrelationStrategy
-from .trading.position_manager import PositionManager
-from .trading.order_tracker import OrderTracker
-from .storage.database import Database
-from .notifications.telegram_notifier import TelegramNotifier
-from .monitoring.statistics import StatisticsMonitor
+from src.logger import logger, setup_logger
+from src.config import Config, PairConfig
+from src.api.bybit_client import BybitClient
+from src.api.bybit_websocket_client import BybitWebSocketClient
+from src.strategy.correlation_strategy import CorrelationStrategy, Signal
+from src.trading.position_manager import PositionManager
+from src.trading.order_tracker import OrderTracker
+from src.storage.database import Database
+from src.notifications.telegram_notifier import TelegramNotifier
+from src.monitoring.statistics import StatisticsMonitor
 
 
 class TradingBot:
-    """
-    Полнофункциональный торговый бот
-
-    Компоненты:
-    - Bybit API клиент с retry логикой
-    - Корреляционная стратегия для множественных пар
-    - Менеджер позиций с БД
-    - Трекер ордеров
-    - Telegram уведомления
-    - Статистика и аналитика
-    """
-
     def __init__(self, config_path: str = "config/config.json"):
         # Загружаем конфигурацию
         self.config = Config.load(config_path)
+        setup_logger(level=self.config.logging_level)
 
         # Инициализируем компоненты
         self.client = BybitClient(
             api_key=self.config.api_key,
             api_secret=self.config.api_secret,
-            testnet=self.config.testnet
+            testnet=self.config.testnet,
+            demo=self.config.demo_mode,
+        )
+
+        self.ws_client = BybitWebSocketClient(
+            api_key=self.config.api_key,
+            api_secret=self.config.api_secret,
+            testnet=self.config.testnet,
+            demo=self.config.demo_mode,
         )
 
         self.database = Database(self.config.database_path)
@@ -55,13 +53,13 @@ class TradingBot:
         self.strategies = {}
         for pair in self.config.pairs:
             if pair.enabled:
-                self.strategies[pair.name] = CorrelationStrategy(pair, self.client)
+                self.strategies[pair.name] = CorrelationStrategy(pair, self.client, self.ws_client)
 
         self.running = False
         self.daily_report_sent = False
 
         logger.info("═" * 70)
-        logger.info("CRYPTO TRADING BOT - FULL PRODUCTION VERSION")
+        logger.info(" " * 25 + "CRYPTO TRADING BOT")
         logger.info("═" * 70)
         logger.info(f"Active pairs: {len(self.strategies)}")
         logger.info(f"Database: {self.config.database_path}")
@@ -94,8 +92,32 @@ class TradingBot:
 
         logger.info("Initializing components...")
 
-        # Устанавливаем плечи
-        await self.position_manager.initialize()
+        try:
+            await self.ws_client.connect()
+        except Exception as e:
+            logger.error(f"WebSocket connect warning: {e}")
+
+        try:
+            # Устанавливаем плечи
+            await self.position_manager.initialize()
+        except Exception as e:
+            logger.error(f"Position manager init warning: {e}")
+
+        for pair in self.config.pairs:
+            if pair.enabled:
+                strategy = self.strategies[pair.name]
+
+                # Предзагрузка истории
+                await strategy.preload_history()
+
+                strategy.set_signal_callback(
+                    lambda sig, p=pair: asyncio.create_task(
+                        self._handle_signal(p, sig),
+                    )
+                )
+
+                # Запускаем WebSocket подписки
+                await strategy.start()
 
         # Запускаем трекер ордеров
         await self.order_tracker.start_monitoring()
@@ -115,6 +137,43 @@ class TradingBot:
         logger.info("═" * 70)
         logger.info("")
 
+    async def _handle_signal(self, pair: PairConfig, sig: Signal):
+        """
+        Вызывается через callback когда стратегия генерирует сигнал
+        """
+        try:
+            # Проверяем что нет открытой позиции
+            if self.position_manager.has_position(pair.name):
+                logger.debug(f"[{pair.name}] Position already open, skipping signal")
+                return
+
+            # Проверяем проскальзывание
+            if not sig.slippage_ok:
+                logger.warning(f"[{pair.name}] Signal rejected: slippage exceeded")
+                return
+
+            logger.info(f"[{pair.name}] Processing signal: {sig.action}")
+
+            # await self.notifier.notify_signal(
+            #     pair_name=pair.name,
+            #     action=signal.action,
+            #
+            # )
+
+            success = await self.position_manager.execute_signal(pair, sig)
+
+            if success:
+                # Сбрасываем буферы после успешного открытия
+                strategy = self.strategies[pair.name]
+                await strategy.reset_buffers()
+                logger.info(f"[{pair.name}] ✅ Signal processed successfully")
+
+        except Exception as e:
+            logger.error(f"[{pair.name}] Error handling signal: {e}", exc_info=True)
+            await self.notifier.notify_error(
+                f"Error handling signal for {pair.name}: {str(e)}"
+            )
+
     async def _main_loop(self):
         """Главный цикл бота"""
 
@@ -133,53 +192,18 @@ class TradingBot:
                     await asyncio.sleep(300)  # Пауза 5 минут
                     continue
 
-                # Обрабатываем каждую пару
-                for pair in self.config.pairs:
-                    if not pair.enabled:
-                        continue
-
-                    strategy = self.strategies[pair.name]
-
-                    # 1. Обновляем тики
-                    ticks_updated = await strategy.update_ticks()
-
-                    if not ticks_updated:
-                        continue
-
-                    # 2. Проверяем сигнал
-                    signal = await strategy.check_signal()
-
-                    # 3. Исполняем сигнал если есть и нет открытой позиции
-                    if signal.action != "NONE":
-                        if not self.position_manager.has_position(pair.name):
-                            # # Отправляем уведомление о сигнале
-                            # await self.notifier.notify_signal(
-                            #     pair_name=pair.name,
-                            #     action=signal.action,
-                            #     dominant_change=signal.dominant_change,
-                            #     target_change=signal.target_change,
-                            #     target_price=signal.target_price
-                            # )
-
-                            # Открываем позицию
-                            success = await self.position_manager.execute_signal(pair, signal)
-
-                            if success:
-                                # Сбрасываем буферы после успешного открытия
-                                strategy.reset_buffers()
-
-                # 4. Проверяем статус открытых позиций
+                # Проверяем статус открытых позиций
                 await self.position_manager.check_positions()
 
-                # 5. Логируем статус каждые 100 циклов
-                if cycle % 100 == 0:
+                # Логируем статус каждую минуту
+                if cycle % 60 == 0:
                     self._log_status(cycle)
 
                 # 6. Отправляем дневной отчет в 00:00
                 await self._check_daily_report()
 
-                # 7. Пауза
-                await asyncio.sleep(self.config.request_interval)
+                # Пауза
+                await asyncio.sleep(1)
 
             except Exception as e:
                 logger.error(f"Error in main loop: {e}", exc_info=True)
@@ -211,7 +235,7 @@ class TradingBot:
         logger.info("Strategies:")
         for name, strategy in self.strategies.items():
             status = strategy.get_status()
-            logger.info(f"  [{name}] Signals: {status['signals_generated']}")
+            logger.info(f"  [{name}] Signals: {status['signals']}")
 
         logger.info("")
 
@@ -241,8 +265,8 @@ class TradingBot:
         for name, strategy in self.strategies.items():
             status = strategy.get_status()
             logger.info(
-                f"    [{name}] Buffer: {status['buffer_size']}, "
-                f"Signals: {status['signals_generated']}"
+                f"    [{name}] Buffer: {status.get('buffer', 'N/A')}, "
+                f"Signals: {status.get('signals', 0)}"
             )
 
         # API статистика
@@ -252,6 +276,12 @@ class TradingBot:
         logger.info(f"    Requests: {client_stats['request_count']}")
         logger.info(f"    Errors: {client_stats['error_count']} ({client_stats['error_rate']})")
 
+        ws_stats = self.ws_client.get_stats()
+        logger.info("")
+        logger.info("  WebSocket Stats:")
+        logger.info(f"    Connected: {ws_stats['connected']}")
+        logger.info(f"    Messages: {ws_stats['messages_received']}")
+        logger.info(f"    Subscriptions: {ws_stats['active_subscriptions']}")
         logger.info("")
 
     async def _check_daily_report(self):
@@ -283,7 +313,7 @@ def main():
     asyncio.set_event_loop(loop)
 
     # Создаем бота
-    bot = TradingBot()
+    bot = TradingBot("../config/config.json")
 
     # Signal handlers для graceful shutdown
     def signal_handler(signum, frame):

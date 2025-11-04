@@ -1,8 +1,12 @@
+import logging
 import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
+
+WEBSOCKET_INTERVALS = {"1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M"}
+POLLING_INTERVALS = {"1s", "5s", "10s", "15s", "30s"}
 
 
 @dataclass
@@ -52,13 +56,42 @@ class PairConfig:
         if self.leverage == 1:
             assert self.direction == 0, "Для spot (leverage=1) direction должен быть 0"
 
+        if self.is_spot():
+            if self.leverage != 1:
+                raise ValueError(
+                    f"[{self.name}] Spot requires leverage=1, got {self.leverage}"
+                )
+            if self.direction != 0:
+                raise ValueError(
+                    f"[{self.name}] Spot requires direction=0, got {self.direction}"
+                )
+
+        if self.is_futures():
+            if self.leverage <= 1:
+                raise ValueError(
+                    f"[{self.name}] Futures requires leverage > 1, got {self.leverage}"
+                )
+
+    def uses_websocket(self) -> bool:
+        """Проверка: использует ли пара WebSocket"""
+        return self.timeframe in WEBSOCKET_INTERVALS
+
+    def uses_polling(self) -> bool:
+        """Проверка: использует ли пара REST API polling"""
+        return self.timeframe in POLLING_INTERVALS
+
+    def get_polling_interval_seconds(self) -> int:
+        """Получить интервал polling в секундах"""
+        if not self.uses_polling():
+            return 0
+
+        # Конвертация "30s" -> 30
+        return int(self.timeframe.rstrip("s"))
+
     def _validate_timeframe(self) -> bool:
         """Валидация timeframe"""
-        valid_seconds = ["1s", "3s", "5s", "10s", "15s", "30s"]
-        valid_minutes = ["1", "3", "5", "15", "30", "60", "120", "240", "360", "720"]
-        valid_others = ["D", "W", "M"]
-
-        return self.timeframe in valid_seconds + valid_minutes + valid_others
+        all_intervals = WEBSOCKET_INTERVALS | POLLING_INTERVALS
+        return self.timeframe in all_intervals
 
     def is_spot(self) -> bool:
         """Проверка на спотовую торговлю"""
@@ -72,43 +105,27 @@ class PairConfig:
         """Получение категории рынка для Bybit API"""
         return "spot" if self.is_spot() else "linear"
 
-    def get_timeframe_seconds(self) -> int:
-        """Конвертация timeframe в секунды"""
-        if self.timeframe.endswith("s"):
-            # Секунды: "1s", "5s", "30s"
-            return int(self.timeframe[:-1])
-        elif self.timeframe == "D":
-            return 86400  # 24 часа
-        elif self.timeframe == "W":
-            return 604800  # 7 дней
-        elif self.timeframe == "M":
-            return 2592000  # 30 дней (приблизительно)
-        else:
-            # Минуты: "1", "5", "15", "60", ...
-            return int(self.timeframe) * 60
-
     def should_take_signal(self, signal_action: str) -> bool:
-        def should_take_signal(self, signal_action: str) -> bool:
-            """
-            Проверка, следует ли брать сигнал с учетом direction
+        """
+        Проверка, следует ли брать сигнал с учетом direction
 
-            Args:
-                signal_action: "BUY" или "SELL"
+        Args:
+            signal_action: "Buy" или "Sell"
 
-            Returns:
-                True если сигнал подходит под direction
-            """
-            if self.direction == 0:
-                # Любое направление
-                return True
-            elif self.direction == 1:
-                # Только лонг
-                return signal_action == "BUY"
-            elif self.direction == -1:
-                # Только шорт
-                return signal_action == "SELL"
+        Returns:
+            True если сигнал подходит под direction
+        """
+        if self.direction == 0:
+            # Любое направление
+            return True
+        elif self.direction == 1:
+            # Только лонг
+            return signal_action == "Buy"
+        elif self.direction == -1:
+            # Только шорт
+            return signal_action == "Sell"
 
-            return False
+        return False
 
     def apply_reverse_logic(self, action: str) -> str:
         """
@@ -125,7 +142,22 @@ class PairConfig:
             return action
         else:
             # Обратная логика
-            return "SELL" if action == "BUY" else "BUY"
+            return "Sell" if action == "Buy" else "Buy"
+
+    def get_timeframe_seconds(self) -> int:
+        """Получить timeframe в секундах"""
+        if self.uses_polling():
+            return self.get_polling_interval_seconds()
+
+        # WebSocket интервалы
+        if self.timeframe == "D":
+            return 86400  # 1 день
+        elif self.timeframe == "W":
+            return 604800  # 1 неделя
+        elif self.timeframe == "M":
+            return 2592000  # 1 месяц
+        else:
+            return int(self.timeframe) * 60  # Минуты в секунды
 
 
 @dataclass
@@ -145,6 +177,7 @@ class Config:
     api_key: str
     api_secret: str
     testnet: bool
+    demo_mode: bool
 
     # global settings
     max_stop_loss_streak: int
@@ -158,8 +191,10 @@ class Config:
     # telegram
     telegram: TelegramConfig = None
 
+    logging_level: str = "INFO"
+
     @classmethod
-    def load(cls, config_path: str = "config/config.json") -> "Config":
+    def load(cls, config_path: str = "../config/config.json") -> "Config":
 
         if not Path(config_path).exists():
             raise FileNotFoundError(f"Файл конфигурации не найден: {config_path}")
@@ -173,7 +208,8 @@ class Config:
         if not api_key or not api_secret:
             raise ValueError("api_key или api_secret не найдены в конфигурации или в окружении")
 
-        testnet = os.getenv("BYBIT_TESTNET", data.get("api", {}).get("testnet", "")) == "true"
+        testnet = str(os.getenv("BYBIT_TESTNET", data.get("api", {}).get("testnet", ""))).lower() == "true"
+        demo_mode = str(os.getenv("BYBIT_DEMO_MODE", data.get("api", {}).get("demo_mode", ""))).lower() == "true"
 
         pairs = []
         for pair_data in data.get("pairs", [])[:13]:
@@ -193,13 +229,23 @@ class Config:
             notify_daily_report=telegram_data.get("notify_daily_report", True)
         )
 
+        log_level = data.get("api", {}).get("logging_level", "INFO")
+        if log_level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+            log_level = "INFO"
+
         return cls(
             api_key=api_key,
             api_secret=api_secret,
             testnet=testnet,
+            demo_mode=demo_mode,
             max_stop_loss_streak=data.get("global", {}).get("max_stop_loss_streak"),
             database_path=data.get("global", {}).get("database_path", "data/trading.db"),
             pairs=pairs,
             telegram=telegram,
+            logging_level=log_level,
         )
 
+    @property
+    def enabled_pairs(self) -> list[PairConfig]:
+        """Получить только включенные пары"""
+        return [p for p in self.pairs if p.enabled]

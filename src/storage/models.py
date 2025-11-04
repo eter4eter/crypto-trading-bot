@@ -3,14 +3,13 @@ from datetime import datetime
 from typing import Literal
 
 
-
 @dataclass
 class OrderRecord:
     id: int | None = None
     pair_name: str = ""
     symbol: str = ""
     order_id: str = ""
-    side: Literal["buy", "sell"] = ""
+    side: Literal["Buy", "Sell"] = ""
     quantity: float = 0
     entry_price: float = 0
     take_profit: float | None = None
@@ -33,7 +32,7 @@ class OrderRecord:
 class SignalRecord:
     id: int | None = None
     pair_name: str = ""
-    action: Literal["BUY", "SELL", "NONE"] = ""
+    action: Literal["Buy", "Sell", "None"] = ""
     dominant_change: float = 0
     target_change: float = 0
     target_price: float = 0

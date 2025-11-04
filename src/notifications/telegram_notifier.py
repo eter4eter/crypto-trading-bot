@@ -9,7 +9,7 @@ from ..config import TelegramConfig
 class TelegramNotifier:
     def __init__(self, config: TelegramConfig):
         self.config = config
-        self.enabled = config.enabled and config.bot_token and config.chat_id
+        self.enabled = config.enabled and bool(config.bot_token) and bool(config.chat_id)
 
         if self.enabled:
             self.api_url = f"https://api.telegram.org/bot{self.config.bot_token}/sendMessage"
@@ -133,3 +133,29 @@ class TelegramNotifier:
 """
 
         await self.send_message(message)
+
+    async def notify_trade_opened(
+            self,
+            pair_name: str,
+            side: str,
+            entry_price: float,
+            quantity: float,
+            take_profit: float,
+            stop_loss: float
+    ):
+        """Уведомление об открытии позиции"""
+        if not self.enabled or not self.config.notify_trades:
+            return
+
+        message = (
+            f"📈 Позиция открыта\\n"
+            f"Пара: {pair_name}\\n"
+            f"Направление: {side}\\n"
+            f"Цена входа: ${entry_price:.8f}\\n"
+            f"Количество: {quantity}\\n"
+            f"Take Profit: ${take_profit:.8f}\\n"
+            f"Stop Loss: ${stop_loss:.8f}"
+        )
+
+        await self.send_message(message)
+

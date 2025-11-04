@@ -1,33 +1,72 @@
+from __future__ import annotations
+
 import asyncio
+import time
 from collections import defaultdict
 from typing import Callable, Any
 
-from pybit.unified_trading import WebSocket
+from pybit.unified_trading import WebSocket as _WebSocket
 
-from .common import Kline
+from .common import Kline, Singleton
 from ..logger import logger
 
 
-class BybitWebSocketClient:
-    def __init__(self, api_key: str, api_secret: str, testnet: bool = True):
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.testnet = testnet
+class WebSocket(_WebSocket):
+    def kline_stream(self, interval: str | int, symbol: (str, list), callback):
+        """Subscribe to the klines stream.
+
+        Push frequency: 1-60s
+
+        Required args:
+            symbol (string/list): Symbol name(s)
+            interval (str/int): Kline interval
+            Available intervals:
+                1 3 5 15 30 (min)
+                60 120 240 360 720 (min)
+                D (day)
+                W (week)
+                M (month)
+
+         Additional information:
+            https://bybit-exchange.github.io/docs/v5/websocket/public/kline
+        """
+        self._validate_public_topic()
+        topic = f"kline.{interval}.{symbol}"
+        self.subscribe(topic, callback, symbol)
+
+
+class BybitWebSocketClient(metaclass=Singleton):
+
+    def __init__(self, api_key: str, api_secret: str, testnet: bool = True, demo: bool = False):
+        self.api_key: str = api_key
+        self.api_secret: str = api_secret
+        self.testnet: bool = testnet
+        self.demo: bool = demo
 
         # WebSocket соединения
         self.ws_connections: dict[str, WebSocket] = {}
+        self.reconnect_tasks: dict[str, asyncio.Task] = {}
 
         # Callbacks для klines
         self.kline_callbacks: dict[str, list] = defaultdict(list)
 
         # Статистика
-        self.messages_received = 0
-        self.connected = False
+        self.messages_received: int = 0
+        self.last_message_times: dict[str, float] = {}
+        self.connected: bool = False
+
+        # reconnect
+        self.reconnect_delay: int = 5
+        self.max_reconnect_attempts: int = 10
+
+        self._loop: asyncio.AbstractEventLoop | None = None
 
         logger.info(f"BybitWebSocketClient initialized (testnet={testnet})")
 
     async def connect(self):
         """Подключение к WebSocket"""
+        self._loop = asyncio.get_running_loop()
+
         self.connected = True
         logger.info("✅ WebSocket ready")
 
@@ -68,14 +107,14 @@ class BybitWebSocketClient:
         ws.kline_stream(
             interval=interval,
             symbol=symbol,
-            callback=lambda msg: asyncio.create_task(
-                self._handle_kline(ws_key, symbol, msg)
-            )
+            callback=lambda msg: self._handle_kline(ws_key, symbol, msg),
         )
 
         logger.info(f"📊 Subscribed to kline: {symbol} ({interval} @ {category})")
 
-    async def _handle_kline(self, ws_key: str, symbol: str, message: dict):
+        self._start_watchdog(ws_key, category, symbol, interval, callback)
+
+    def _handle_kline(self, ws_key: str, symbol: str, message: dict):
         """
         Обработка kline сообщения
         msg: dict {
@@ -102,6 +141,7 @@ class BybitWebSocketClient:
 
         try:
             self.messages_received += 1
+            self.last_message_times[ws_key] = time.time()
 
             # Формат сообщения от Bybit WebSocket
             if message.get("topic", "").startswith("kline"):
@@ -111,15 +151,6 @@ class BybitWebSocketClient:
                     kline_data = data[0] if isinstance(data, list) else data
 
                     # Извлекаем данные свечи
-                    # kline = {
-                    #     "timestamp": int(kline_data.get("start", 0)),
-                    #     "open": float(kline_data.get("open", 0)),
-                    #     "high": float(kline_data.get("high", 0)),
-                    #     "low": float(kline_data.get("low", 0)),
-                    #     "close": float(kline_data.get("close", 0)),
-                    #     "volume": float(kline_data.get("volume", 0)),
-                    #     "confirm": kline_data.get("confirm", False)  # True когда свеча закрылась
-                    # }
                     kline = Kline(
                         timestamp=int(kline_data.get("start", 0)),
                         open=float(kline_data.get("open", 0)),
@@ -131,26 +162,75 @@ class BybitWebSocketClient:
                     )
 
                     # Вызываем callbacks
-                    for callback in self.kline_callbacks[ws_key]:
-                        try:
-                            if asyncio.iscoroutinefunction(callback):
-                                await callback(symbol, kline)
-                            else:
-                                callback(symbol, kline)
-                        except Exception as e:
-                            logger.error(f"Callback error: {e}")
+                    if self._loop is not None:
+                        for callback in self.kline_callbacks[ws_key]:
+                            try:
+                                # Проверяем что это async функция
+                                if asyncio.iscoroutinefunction(callback):
+                                    try:
+                                        asyncio.run_coroutine_threadsafe(
+                                            callback(symbol, kline),
+                                            self._loop
+                                        )
+                                    except RuntimeError:
+                                        break
+                                else:
+                                    # Sync callback - вызываем напрямую
+                                    callback(symbol, kline)
 
-                    # if kline['confirm']:
+                            except Exception as e:
+                                logger.error(f"Callback error: {e}", exc_info=True)
+
                     if kline.confirm:
                         logger.debug(f"📊 {symbol} kline closed: ${kline.close:.8f}")
 
         except Exception as e:
             logger.error(f"Error handling kline: {e}")
 
+    def _start_watchdog(self, ws_key: str, category: str, symbol: str, interval: str, callback: Callable):
+        """Запуск watchdog для отслеживания разрывов"""
+
+        async def watchdog():
+            """Проверка активности соединения"""
+            reconnect_count = 0
+
+            while self.connected and reconnect_count < self.max_reconnect_attempts:
+                await asyncio.sleep(30)
+
+                last_message_time = self.last_message_times.get(ws_key, 0)
+                time_since_last = time.time() - last_message_time
+
+                if time_since_last > 70:
+                    logger.warning(f"⚠️ No messages for {ws_key}, reconnecting...")
+
+                    try:
+                        if ws_key in self.ws_connections:
+                            del self.ws_connections[ws_key]
+
+                        self.subscribe_kline(category, symbol, interval, callback)
+                        reconnect_count += 1
+
+                        logger.info(f"✅ Reconnected {ws_key} (attempt {reconnect_count})")
+
+                    except Exception as e:
+                        logger.error(f"Reconnect failed: {e}")
+                        await asyncio.sleep(self.reconnect_delay)
+
+        task = asyncio.create_task(watchdog())
+        self.reconnect_tasks[ws_key] = task
+
     def close(self):
         """Закрытие WebSocket соединений"""
         self.connected = False
+
+        # Отменяем все watchdog tasks
+        for task in self.reconnect_tasks.values():
+            if not task.done():
+                task.cancel()
+
         self.ws_connections.clear()
+        self.reconnect_tasks.clear()
+
         logger.info("WebSocket connections closed")
 
     def get_stats(self) -> dict[str, Any]:
@@ -158,5 +238,6 @@ class BybitWebSocketClient:
         return {
             "connected": self.connected,
             "messages_received": self.messages_received,
-            "active_subscriptions": len(self.ws_connections)
+            "active_subscriptions": len(self.ws_connections),
+            "watchdog_tasks": len(self.reconnect_tasks),
         }

@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 
 from .models import OrderRecord, SignalRecord, DailyStats
@@ -12,6 +12,46 @@ from .sql import (
     SIGNALS_PAIR_INDEX,
 )
 from ..logger import logger
+
+
+def adapt_date_iso(val):
+    """Adapt datetime.date to ISO 8601 date."""
+    return val.isoformat()
+
+
+def adapt_datetime_iso(val):
+    """Adapt datetime.datetime to timezone-naive ISO 8601 date."""
+    return val.replace(tzinfo=None).isoformat()
+
+
+def adapt_datetime_epoch(val):
+    """Adapt datetime.datetime to Unix timestamp."""
+    return int(val.timestamp())
+
+
+sqlite3.register_adapter(date, adapt_date_iso)
+sqlite3.register_adapter(datetime, adapt_datetime_iso)
+sqlite3.register_adapter(datetime, adapt_datetime_epoch)
+
+
+def convert_date(val):
+    """Convert ISO 8601 date to datetime.date object."""
+    return date.fromisoformat(val.decode())
+
+
+def convert_datetime(val):
+    """Convert ISO 8601 datetime to datetime.datetime object."""
+    return datetime.fromisoformat(val.decode())
+
+
+def convert_timestamp(val):
+    """Convert Unix epoch timestamp to datetime.datetime object."""
+    return datetime.fromtimestamp(int(val))
+
+
+sqlite3.register_converter("date", convert_date)
+sqlite3.register_converter("datetime", convert_datetime)
+sqlite3.register_converter("timestamp", convert_timestamp)
 
 
 class Database:
@@ -151,11 +191,12 @@ class Database:
 
             row = cursor.fetchone()
 
-            total_trades = row[0] or 0
-            profitable_trades = row[1] or 0
-            total_pnl = row[2] or 0.0
-            best_trade = row[3] or 0.0
-            worst_trade = row[4] or 0.0
+            is_n = row is None
+            total_trades = int(row[0]) if not is_n and row[0] is not None else 0
+            profitable_trades = int(row[1]) if not is_n and row[1] is not None else 0
+            total_pnl = float(row[2]) if not is_n and row[2] is not None else 0.0
+            best_trade = float(row[3]) if not is_n and row[3] is not None else 0.0
+            worst_trade = float(row[4]) if not is_n and row[4] is not None else 0.0
 
             win_rate = (profitable_trades / total_trades * 100) if total_trades > 0 else 0.0
 
@@ -191,15 +232,25 @@ class Database:
 
             row = cursor.fetchone()
 
+            is_n = row is None
+            total_trades = int(row[0]) if not is_n and row[0] is not None else 0
+            profitable_trades = int(row[1]) if not is_n and row[1] is not None else 0
+            total_pnl = float(row[2]) if not is_n and row[2] is not None else 0.0
+            avg_pnl_percent = float(row[3]) if not is_n and row[3] is not None else 0.0
+            best_trade = float(row[4]) if not is_n and row[4] is not None else 0.0
+            worst_trade = float(row[5]) if not is_n and row[5] is not None else 0.0
+
+            win_rate = (profitable_trades / total_trades * 100) if total_trades > 0 else 0.0
+
             return {
                 "period_days": days,
-                "total_trades": row[0] or 0,
-                "profitable_trades": row[1] or 0,
-                "total_pnl": round(row[2] or 0.0, 2),
-                "avg_pnl_percent": round(row[3] or 0.0, 2),
-                "win_rate": round((row[1] / max(row[0], 1)) * 100, 2),
-                "best_trade": round(row[4] or 0.0, 2),
-                "worst_trade": round(row[5] or 0.0, 2)
+                "total_trades": total_trades,
+                "profitable_trades": profitable_trades,
+                "total_pnl": round(total_pnl, 2),
+                "avg_pnl_percent": round(avg_pnl_percent, 2),
+                "win_rate": round(win_rate, 2),
+                "best_trade": round(best_trade, 2),
+                "worst_trade": round(worst_trade, 2)
             }
 
     @staticmethod
@@ -216,11 +267,14 @@ class Database:
             take_profit=row["take_profit"],
             stop_loss=row["stop_loss"],
             status=row['status'],
-            opened_at=datetime.fromisoformat(row["opened_at"]) if row["opened_at"] else None,
-            closed_at=datetime.fromisoformat(row["closed_at"]) if row["closed_at"] else None,
+            opened_at=row["opened_at"] if row["opened_at"] else None,
+            # opened_at=datetime.fromisoformat(row["opened_at"]) if row["opened_at"] else None,
+            closed_at=row["closed_at"] if row["closed_at"] else None,
+            # closed_at=datetime.fromisoformat(row["closed_at"]) if row["closed_at"] else None,
             close_price=row["close_price"],
             pnl=row["pnl"],
             pnl_percent=row["pnl_percent"],
             close_reason=row["close_reason"],
-            created_at=datetime.fromisoformat(row["created_at"])
+            # created_at=datetime.fromisoformat(row["created_at"])
+            created_at=row["created_at"]
         )

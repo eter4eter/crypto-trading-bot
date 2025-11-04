@@ -1,75 +1,66 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 import time
 
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypeVar, ParamSpec, Coroutine, Callable, Literal
 
 from pybit.unified_trading import HTTP
 
-from .common import Kline
+from .common import Kline, Singleton
 from ..logger import logger
 
 
-def async_wrap(func):
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def async_wrap(func: Callable[P, R]) -> Callable[P, Coroutine[Any, Any, R]]:
     """Декоратор для async выполнения sync функций"""
     @functools.wraps(func)
-    async def wrapper(self, *args, **kwargs):
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        self = args[0]
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            self._executor,
-            lambda: func(self, *args, **kwargs)
-        )
+        partial_func = functools.partial(func, *args, **kwargs)
+        return await loop.run_in_executor(self._executor, partial_func)
+        # return await loop.run_in_executor(
+        #     self._executor,
+        #     lambda: func(*args, **kwargs)
+        # )
+
     return wrapper
 
 
-def retry(max_attempts: int = 3, delay: float = 1.0):
-    """Декоратор для повторных попыток"""
-    def decorator(func):
-        @functools.wraps(func)
-        async def wrapper(self, *args, **kwargs):
-            for attempt in range(max_attempts):
-                try:
-                    return await func(self, *args, **kwargs)
-                except Exception as e:
-                    if attempt == max_attempts - 1:
-                        logger.error(f"{func.__name__} failed after {max_attempts} attempts: {e}")
-                        raise
-                    logger.warning(f"{func.__name__} attempt {attempt + 1} failed: {e}")
-                    await asyncio.sleep(delay * (attempt + 1))
-        return wrapper
-    return decorator
+class BybitClient(metaclass=Singleton):
 
+    def __init__(self, api_key: str, api_secret: str, testnet: bool = True, demo: bool = False):
+        self.api_key: str = api_key
+        self.api_secret: str = api_secret
+        self.testnet: bool = testnet
+        self.demo: bool = demo
 
-class BybitClient:
-    instance: "BybitClient" | None = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls.instance:
-            return cls.instance
-        else:
-            cls.instance = super().__new__(cls, *args, **kwargs)
-            return cls.instance
-
-    def __init__(self, api_key: str, api_secret: str, testnet: bool = True):
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.testnet = testnet
-
-        self.session = HTTP(
-            testnet=testnet,
-            api_key=api_key,
-            api_secret=api_secret,
-        )
+        self.session: HTTP | None = None
 
         self._executor = ThreadPoolExecutor(max_workers=10)
+        self._initialized: bool = False
 
         self.request_count = 0
         self.error_count = 0
         self.last_request_time = 0
 
         logger.info(f"BybitClient initialized. Testnet: {testnet}")
+
+    def _init_session(self):
+        if self.session is None:
+            self.session = HTTP(
+                testnet=self.testnet,
+                api_key=self.api_key,
+                api_secret=self.api_secret,
+                demo=self.demo,
+            )
+            self._initialized = True
 
     @async_wrap
     def get_klines(
@@ -92,6 +83,8 @@ class BybitClient:
         Returns:
             List кортежей (timestamp, open, high, low, close, volume)
         """
+        self._init_session()
+
         try:
             response = self.session.get_kline(
                 category=category,
@@ -130,31 +123,71 @@ class BybitClient:
             logger.error(f"Exception getting klines: {e}")
             return []
 
-    @retry(max_attempts=3, delay=1)
+    # @retry(max_attempts=3, delay=1)
     @async_wrap
-    def get_ticker_price(self, category: str, symbol: str) -> float | None:
-        """Получение цены тикера с retry"""
+    def get_ticker(self, category: str, symbol: str) -> dict[str, Any] | None:
+        """
+        Получение текущего тикера (для sub-minute polling)
+
+        Args:
+            category: "spot" или "linear"
+            symbol: Символ пары (e.g., "BTCUSDT")
+
+        Returns:
+            dict: Информация о тикере или None при ошибке
+            {
+                "symbol": "BTCUSDT",
+                "lastPrice": "50000.00",
+                "highPrice24h": "51000.00",
+                "lowPrice24h": "49000.00",
+                "volume24h": "12345.67",
+                "turnover24h": "616728405.23",
+                "bid1Price": "49999.99",
+                "ask1Price": "50000.01",
+                ...
+            }
+        """
+        self._init_session()
+
         try:
             self.request_count += 1
             self.last_request_time = time.time()
 
             response = self.session.get_tickers(category=category, symbol=symbol)
 
-            if response["retCode"] == 0 and response["result"]["list"]:
-                return float(response["result"]["list"][0]["lastPrice"])
+            if response["retCode"] == 0:
+                tickers = response.get('result', {}).get('list', [])
+                if tickers:
+                    ticker = tickers[0]
+                    logger.debug(
+                        f"Got ticker for {symbol}: "
+                        f"${ticker.get('lastPrice')} "
+                        f"(high: ${ticker.get('highPrice24h')}, "
+                        f"low: ${ticker.get('lowPrice24h')})"
+                    )
+                    return ticker
 
-            logger.warning(f"Get ticker error for {symbol}: {response.get('retMsg', 'Unknown')}")
-            return None
+                logger.warning(f"No ticker data for {symbol}")
+                return None
+
+            else:
+                logger.error(
+                    f"Get ticker error for {symbol}: "
+                    f"({response.get('retCode')}) {response.get('retMsg')}"
+                )
+                return None
 
         except Exception as e:
             self.error_count += 1
-            logger.error(f"Exception getting ticker {symbol}: {e}")
-            raise
+            logger.error(f"Exception getting ticker for {symbol}: {e}", exc_info=True)
+            return None
 
-    @retry(max_attempts=3, delay=2)
+    # @retry(max_attempts=3, delay=2)
     @async_wrap
     def set_leverage(self, category: str, symbol: str, leverage: int) -> bool:
         """Установка плеча с retry"""
+        self._init_session()
+
         try:
             self.request_count += 1
             lev = str(leverage)
@@ -163,37 +196,53 @@ class BybitClient:
                 category=category,
                 symbol=symbol,
                 buyLeverage=lev,
-                sellLeverage=lev
+                sellLeverage=lev,
             )
 
-            success = response["retCode"] == 0
+            ret_code = response.get("retCode", 0)
 
-            if success:
-                logger.info(f"Leverage set for {symbol}: {leverage}x")
+            if ret_code == 0:
+                logger.info(f"✓ Leverage set for {symbol}: {leverage}x")
+                return True
+
+            elif ret_code == 110043:
+                # 1. Плечо уже установлено (OK)
+                # 2. Spot пара (ожидаемо)
+                logger.debug(f"Leverage already set or not applicable for {symbol}")
+                return True
+
             else:
-                logger.error(f"Set leverage error for {symbol}: {response.get('retMsg')}")
-
-            return success
+                logger.error(
+                    f"✗ Set leverage error for {symbol} "
+                    f"(code {ret_code}): {response.get('retMsg')}"
+                )
+                return False
 
         except Exception as e:
             self.error_count += 1
             logger.error(f"Exception setting leverage for {symbol}: {e}")
-            raise
+            return False
 
-    @retry(max_attempts=3, delay=2)
+    # @retry(max_attempts=3, delay=2)
     @async_wrap
     def place_market_order(
             self,
             category: str,
             symbol: str,
-            side: str,
+            side: Literal["Buy", "Sell"],
             qty: str,
             take_profit: str | None = None,
             stop_loss: str | None = None,
             position_idx: int = 0
     ) -> dict[str, Any] | None:
         """Размещение рыночного ордера с TP/SL"""
+        self._init_session()
+
         try:
+            if not qty or float(qty) <= 0:
+                logger.error(f"Invalid quantity for {symbol}: {qty}")
+                return None
+
             self.request_count += 1
 
             params = {
@@ -219,7 +268,7 @@ class BybitClient:
 
             if response["retCode"] == 0:
                 result = response["result"]
-                logger.info(f"Order placed: {side} {qty} {symbol}")
+                logger.info(f"✅ Order placed: {side} {qty} {symbol}")
                 logger.debug(f"  Order ID: {result.get('orderId')}")
                 if take_profit:
                     logger.debug(f"  TP: {take_profit}")
@@ -227,18 +276,20 @@ class BybitClient:
                     logger.debug(f"  SL: {stop_loss}")
                 return result
 
-            logger.error(f"Place order error: {response.get('retMsg')}")
+            logger.error(f"❌ Place order error: {response.get('retMsg')}")
             return None
 
         except Exception as e:
             self.error_count += 1
             logger.error(f"Exception placing order for {symbol}: {e}")
-            raise
+            return None
 
-    @retry(max_attempts=3, delay=1)
+    # @retry(max_attempts=3, delay=1)
     @async_wrap
     def get_position(self, category: str, symbol: str) -> dict[str, Any] | None:
         """Получение позиции"""
+        self._init_session()
+
         try:
             self.request_count += 1
 
@@ -259,7 +310,7 @@ class BybitClient:
             logger.error(f"Exception getting position {symbol}: {e}")
             return None
 
-    @retry(max_attempts=3, delay=1)
+    # @retry(max_attempts=3, delay=1)
     @async_wrap
     def get_order_history(
             self,
@@ -268,6 +319,8 @@ class BybitClient:
             limit: int = 20
     ) -> list[dict[str, Any]]:
         """Получение истории ордеров"""
+        self._init_session()
+
         try:
             self.request_count += 1
 
@@ -291,10 +344,12 @@ class BybitClient:
             logger.error(f"Exception getting order history: {e}")
             return []
 
-    @retry(max_attempts=3, delay=1)
+    # @retry(max_attempts=3, delay=1)
     @async_wrap
     def get_wallet_balance(self, account_type: str = "UNIFIED") -> dict[str, Any] | None:
         """Получение баланса кошелька"""
+        self._init_session()
+
         try:
             self.request_count += 1
 
