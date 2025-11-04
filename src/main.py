@@ -3,10 +3,10 @@ import signal
 from datetime import datetime
 
 from src.logger import logger, setup_logger
-from src.config import Config, PairConfig
+from src.config import Config, StrategyConfig
 from src.api.bybit_client import BybitClient
 from src.api.bybit_websocket_client import BybitWebSocketClient
-from src.strategy.correlation_strategy import CorrelationStrategy, Signal
+from src.strategy.multi_signal_strategy import MultiSignalStrategy, SignalResult
 from src.trading.position_manager import PositionManager
 from src.trading.order_tracker import OrderTracker
 from src.storage.database import Database
@@ -48,12 +48,13 @@ class TradingBot:
         )
 
         self.statistics = StatisticsMonitor(self.database)
-
-        # Создаем стратегии для каждой пары
+                
+        # Создаем мультисигнальные стратегии (новый формат ТЗ)
         self.strategies = {}
-        for pair in self.config.pairs:
-            if pair.enabled:
-                self.strategies[pair.name] = CorrelationStrategy(pair, self.client, self.ws_client)
+        for strategy_name, strategy_config in self.config.enabled_strategies.items():
+            self.strategies[strategy_name] = MultiSignalStrategy(
+                strategy_config, self.client, self.ws_client
+            )
 
         self.running = False
         self.daily_report_sent = False
@@ -61,7 +62,7 @@ class TradingBot:
         logger.info("═" * 70)
         logger.info(" " * 25 + "CRYPTO TRADING BOT")
         logger.info("═" * 70)
-        logger.info(f"Active pairs: {len(self.strategies)}")
+        logger.info(f"Active strategies: {len(self.strategies)}")
         logger.info(f"Database: {self.config.database_path}")
         logger.info(f"Telegram: {'Enabled' if self.config.telegram.enabled else 'Disabled'}")
         logger.info(f"Testnet: {self.config.testnet}")
@@ -102,22 +103,16 @@ class TradingBot:
             await self.position_manager.initialize()
         except Exception as e:
             logger.error(f"Position manager init warning: {e}")
-
-        for pair in self.config.pairs:
-            if pair.enabled:
-                strategy = self.strategies[pair.name]
-
-                # Предзагрузка истории
-                await strategy.preload_history()
-
-                strategy.set_signal_callback(
-                    lambda sig, p=pair: asyncio.create_task(
-                        self._handle_signal(p, sig),
-                    )
+                
+        # Инициализируем мультисигнальные стратегии
+        for strategy_name, strategy in self.strategies.items():
+            await strategy.preload_history()
+            strategy.set_strategy_callback(
+                lambda sig_result: asyncio.create_task(
+                    self._handle_signal(sig_result),
                 )
-
-                # Запускаем WebSocket подписки
-                await strategy.start()
+            )
+            await strategy.start()
 
         # Запускаем трекер ордеров
         await self.order_tracker.start_monitoring()
@@ -136,42 +131,39 @@ class TradingBot:
         logger.info("🚀 Bot started successfully!")
         logger.info("═" * 70)
         logger.info("")
-
-    async def _handle_signal(self, pair: PairConfig, sig: Signal):
+            
+    async def _handle_signal(self, sig_result: SignalResult):
         """
-        Вызывается через callback когда стратегия генерирует сигнал
+        Обработка сигнала от мультисигнальной стратегии
         """
         try:
-            # Проверяем что нет открытой позиции
-            if self.position_manager.has_position(pair.name):
-                logger.debug(f"[{pair.name}] Position already open, skipping signal")
+            strategy_name = sig_result.strategy_name
+            
+            if self.position_manager.has_position(strategy_name):
+                logger.debug(f"[{strategy_name}] Position already open, skipping signal")
                 return
 
-            # Проверяем проскальзывание
-            if not sig.slippage_ok:
-                logger.warning(f"[{pair.name}] Signal rejected: slippage exceeded")
+            if not sig_result.slippage_ok:
+                logger.warning(f"[{strategy_name}] Signal rejected: slippage exceeded")
                 return
 
-            logger.info(f"[{pair.name}] Processing signal: {sig.action}")
+            logger.info(f"[{strategy_name}:{sig_result.signal_name}] Processing signal: {sig_result.action}")
 
-            # await self.notifier.notify_signal(
-            #     pair_name=pair.name,
-            #     action=signal.action,
-            #
-            # )
-
-            success = await self.position_manager.execute_signal(pair, sig)
-
-            if success:
-                # Сбрасываем буферы после успешного открытия
-                strategy = self.strategies[pair.name]
-                await strategy.reset_buffers()
-                logger.info(f"[{pair.name}] ✅ Signal processed successfully")
+            # TODO: Адаптировать position_manager для работы с SignalResult
+            # success = await self.position_manager.execute_multi_signal(sig_result)
+            
+            # Пока логируем сигнал
+            logger.info(f"[{strategy_name}:{sig_result.signal_name}] ✅ Signal logged (position_manager update needed)")
+            
+            # TODO: Сброс буферов после успешного открытия
+            # if success:
+            #     strategy = self.strategies[strategy_name]
+            #     await strategy.reset_buffers()
 
         except Exception as e:
-            logger.error(f"[{pair.name}] Error handling signal: {e}", exc_info=True)
+            logger.error(f"[{sig_result.strategy_name}] Error handling signal: {e}", exc_info=True)
             await self.notifier.notify_error(
-                f"Error handling signal for {pair.name}: {str(e)}"
+                f"Error handling signal for {sig_result.strategy_name}: {str(e)}"
             )
 
     async def _main_loop(self):
@@ -199,7 +191,7 @@ class TradingBot:
                 if cycle % 60 == 0:
                     self._log_status(cycle)
 
-                # 6. Отправляем дневной отчет в 00:00
+                # Отправляем дневной отчет в 00:00
                 await self._check_daily_report()
 
                 # Пауза
@@ -222,9 +214,16 @@ class TradingBot:
         # Останавливаем трекер
         await self.order_tracker.stop_monitoring()
 
+        # Останавливаем все стратегии
+        for strategy in self.strategies.values():
+            try:
+                await strategy.stop()
+            except Exception as e:
+                logger.error(f"Error stopping strategy: {e}")
+
         # Финальная статистика
         logger.info("")
-        logger.info("📊 FINAL STATISTICS:")
+        logger.info("📈 FINAL STATISTICS:")
         logger.info("")
 
         pm_stats = self.position_manager.get_stats()
@@ -235,7 +234,7 @@ class TradingBot:
         logger.info("Strategies:")
         for name, strategy in self.strategies.items():
             status = strategy.get_status()
-            logger.info(f"  [{name}] Signals: {status['signals']}")
+            logger.info(f"  [{name}] Signals: {status['signals_generated']}")
 
         logger.info("")
 
@@ -249,6 +248,40 @@ class TradingBot:
         logger.info("═" * 70)
         logger.info("✅ Bot stopped successfully")
         logger.info("═" * 70)
+            
+    async def _handle_signal(self, sig_result: SignalResult):
+        """
+        Обработка сигнала от мультисигнальной стратегии
+        """
+        try:
+            strategy_name = sig_result.strategy_name
+            
+            if self.position_manager.has_position(strategy_name):
+                logger.debug(f"[{strategy_name}] Position already open, skipping signal")
+                return
+
+            if not sig_result.slippage_ok:
+                logger.warning(f"[{strategy_name}] Signal rejected: slippage exceeded")
+                return
+
+            logger.info(f"[{strategy_name}:{sig_result.signal_name}] Processing signal: {sig_result.action}")
+
+            # TODO: Адаптировать position_manager для работы с SignalResult
+            # success = await self.position_manager.execute_multi_signal(sig_result)
+            
+            # Пока логируем сигнал
+            logger.info(f"[{strategy_name}:{sig_result.signal_name}] ✅ Signal logged (position_manager update needed)")
+            
+            # TODO: Сброс буферов после успешного открытия
+            # if success:
+            #     strategy = self.strategies[strategy_name]
+            #     await strategy.reset_buffers()
+
+        except Exception as e:
+            logger.error(f"[{sig_result.strategy_name}] Error handling signal: {e}", exc_info=True)
+            await self.notifier.notify_error(
+                f"Error handling signal for {sig_result.strategy_name}: {str(e)}"
+            )
 
     def _log_status(self, cycle: int):
         """Логирование текущего статуса"""
@@ -265,8 +298,8 @@ class TradingBot:
         for name, strategy in self.strategies.items():
             status = strategy.get_status()
             logger.info(
-                f"    [{name}] Buffer: {status.get('buffer', 'N/A')}, "
-                f"Signals: {status.get('signals', 0)}"
+                f"    [{name}] Signals: {status['signals_count']}, "
+                f"Generated: {status['signals_generated']}"
             )
 
         # API статистика
@@ -306,14 +339,14 @@ class TradingBot:
 
 
 def main():
-    """Entry point"""
+    """Точка входа"""
 
     # Создаем event loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
     # Создаем бота
-    bot = TradingBot("../config/config.json")
+    bot = TradingBot("config/config.json")
 
     # Signal handlers для graceful shutdown
     def signal_handler(signum, frame):
