@@ -60,7 +60,7 @@
       "leverage": 3,
       "take_profit_percent": 4.0,
       "stop_loss_percent": 2.0,
-      "enabled": true
+      "enabled": false
     },
     {
       "name": "REVERSE-ADA",
@@ -77,9 +77,83 @@
       "leverage": 2,
       "take_profit_percent": 5.0,
       "stop_loss_percent": 2.5,
-      "enabled": true
+      "enabled": false
     }
   ],
+  "strategies": {
+    "WIF-USDT-threshold": {
+      "trade_pairs": ["WIFUSDT"],
+      "leverage": 5,
+      "tick_window": 10,
+      "price_change_threshold": 0.05,
+      "stop_take_percent": 0.005,
+      "position_size": 100,
+      "direction": 0,
+      "enabled": true,
+      "signals": {
+        "btc_correlation": {
+          "index": "BTCUSDT",
+          "frame": "1",
+          "tick_window": 30,
+          "index_change_threshold": 1.0,
+          "target": 0.75,
+          "direction": 0,
+          "reverse": 0
+        },
+        "eth_momentum": {
+          "index": "ETHUSDT",
+          "frame": "5",
+          "tick_window": 20,
+          "index_change_threshold": 1.5,
+          "target": 1.0,
+          "direction": 1,
+          "reverse": 1
+        }
+      }
+    },
+    "BTC-scalping": {
+      "trade_pairs": ["BTCUSDT"],
+      "leverage": 3,
+      "tick_window": 0,
+      "price_change_threshold": 0.02,
+      "stop_take_percent": 0.008,
+      "position_size": 200,
+      "direction": 1,
+      "enabled": false,
+      "signals": {
+        "momentum_signal": {
+          "index": "BTCUSDT",
+          "frame": "5s",
+          "tick_window": 0,
+          "index_change_threshold": 0.5,
+          "target": 0.8,
+          "direction": 1,
+          "reverse": 0
+        }
+      }
+    },
+    "PEPE-correlation": {
+      "trade_pairs": ["PEPEUSDT"],
+      "leverage": 2,
+      "tick_window": 30,
+      "price_change_threshold": 0.1,
+      "stop_take_percent": 0.01,
+      "position_size": 150,
+      "direction": 0,
+      "enabled": true,
+      "signals": {
+        "btc_lead": {
+          "index": "BTCUSDT",
+          "frame": "1",
+          "tick_window": 30,
+          "index_change_threshold": 1.0,
+          "target": 0.75,
+          "direction": 0,
+          "reverse": 0
+        }
+      }
+    }
+  },
   "telegram": {
     "enabled": false,
     "bot_token": "",
