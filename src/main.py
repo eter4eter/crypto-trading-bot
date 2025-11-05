@@ -3,9 +3,10 @@ import signal
 from datetime import datetime
 
 from src.logger import logger, setup_logger
-from src.config import Config, StrategyConfig
+from src.config import Config
 from src.api.bybit_client import BybitClient
 from src.api.bybit_websocket_client import BybitWebSocketClient
+from src.api.global_market_data_manager import GlobalMarketDataManager
 from src.strategy.multi_signal_strategy import MultiSignalStrategy, SignalResult
 from src.trading.position_manager import PositionManager
 from src.trading.order_tracker import OrderTracker
@@ -20,7 +21,7 @@ class TradingBot:
         self.config = Config.load(config_path)
         setup_logger(level=self.config.logging_level)
 
-        # Инициализируем компоненты
+        # Инициализируем клиентов
         self.client = BybitClient(
             api_key=self.config.api_key,
             api_secret=self.config.api_secret,
@@ -35,10 +36,12 @@ class TradingBot:
             demo=self.config.demo_mode,
         )
 
+        # База, уведомления, трекинг
         self.database = Database(self.config.database_path)
         self.notifier = TelegramNotifier(self.config.telegram)
         self.order_tracker = OrderTracker(self.client)
 
+        # Менеджер позиций
         self.position_manager = PositionManager(
             config=self.config,
             client=self.client,
@@ -48,13 +51,27 @@ class TradingBot:
         )
 
         self.statistics = StatisticsMonitor(self.database)
-                
-        # Создаем мультисигнальные стратегии (новый формат ТЗ)
-        self.strategies = {}
+
+        # Глобальный менеджер рыночных данных (единый для всех стратегий)
+        market_category = (
+            "linear" if any(s.leverage > 1 for s in self.config.strategies.values()) else "spot"
+        )
+        self.market_data_manager = GlobalMarketDataManager(
+            rest_client=self.client,
+            ws_client=self.ws_client,
+            market_category=market_category,
+        )
+
+        # Создаем мультисигнальные стратегии и регистрируем их в глобальном менеджере
+        self.strategies: dict[str, MultiSignalStrategy] = {}
         for strategy_name, strategy_config in self.config.enabled_strategies.items():
-            self.strategies[strategy_name] = MultiSignalStrategy(
-                strategy_config, self.client, self.ws_client
+            strategy = MultiSignalStrategy(strategy_config, self.client, self.ws_client)
+            # Регистрируем стратегию в глобальном менеджере с ее callback
+            self.market_data_manager.register_strategy(
+                strategy_config=strategy_config,
+                kline_callback=strategy._on_kline_data  # стратегия принимает kline напрямую
             )
+            self.strategies[strategy_name] = strategy
 
         self.running = False
         self.daily_report_sent = False
@@ -70,16 +87,10 @@ class TradingBot:
 
     async def start(self):
         """Запуск бота"""
-
         self.running = True
-
         try:
-            # Инициализируем компоненты
             await self._initialize()
-
-            # Запускаем основной цикл
             await self._main_loop()
-
         except KeyboardInterrupt:
             logger.info("\n⏹ Stopping bot (KeyboardInterrupt)...")
         except Exception as e:
@@ -90,7 +101,6 @@ class TradingBot:
 
     async def _initialize(self):
         """Инициализация всех компонентов"""
-
         logger.info("Initializing components...")
 
         try:
@@ -99,46 +109,42 @@ class TradingBot:
             logger.error(f"WebSocket connect warning: {e}")
 
         try:
-            # Устанавливаем плечи
             await self.position_manager.initialize()
         except Exception as e:
             logger.error(f"Position manager init warning: {e}")
-                
-        # Инициализируем мультисигнальные стратегии
-        for strategy_name, strategy in self.strategies.items():
+
+        # Предзагрузка истории стратегий и установка общих callback
+        for strategy in self.strategies.values():
             await strategy.preload_history()
             strategy.set_strategy_callback(
-                lambda sig_result: asyncio.create_task(
-                    self._handle_signal(sig_result),
-                )
+                lambda sig_result: asyncio.create_task(self._handle_signal(sig_result))
             )
-            await strategy.start()
 
-        # Запускаем трекер ордеров
+        # Запуск мониторинга ордеров
         await self.order_tracker.start_monitoring()
 
-        # Загружаем незакрытые позиции из БД
+        # Восстановление открытых позиций из БД
         open_orders = self.database.get_open_orders()
         for order in open_orders:
             self.position_manager.open_positions[order.pair_name] = order
             self.order_tracker.track_order(order)
-
         if open_orders:
             logger.info(f"Restored {len(open_orders)} open positions from database")
+
+        # Запуск глобального менеджера рыночных данных
+        await self.market_data_manager.start()
 
         logger.info("✅ All components initialized")
         logger.info("")
         logger.info("🚀 Bot started successfully!")
         logger.info("═" * 70)
         logger.info("")
-            
+
     async def _handle_signal(self, sig_result: SignalResult):
-        """
-        Обработка сигнала от мультисигнальной стратегии
-        """
+        """Обработка сигнала от мультисигнальной стратегии"""
         try:
             strategy_name = sig_result.strategy_name
-            
+
             if self.position_manager.has_position(strategy_name):
                 logger.debug(f"[{strategy_name}] Position already open, skipping signal")
                 return
@@ -149,11 +155,10 @@ class TradingBot:
 
             logger.info(f"[{strategy_name}:{sig_result.signal_name}] Processing signal: {sig_result.action}")
 
-            # Исполняем мультисигнал через position_manager
             success = await self.position_manager.execute_multi_signal(sig_result)
-            
+
             if success:
-                # Сбрасываем буферы после успешного открытия
+                # Сброс буферов после успешного открытия
                 strategy = self.strategies[strategy_name]
                 await strategy.reset_buffers()
                 logger.info(f"[{strategy_name}:{sig_result.signal_name}] ✅ Signal processed successfully")
@@ -168,20 +173,16 @@ class TradingBot:
 
     async def _main_loop(self):
         """Главный цикл бота"""
-
         cycle = 0
-
         while self.running:
             cycle += 1
-
             try:
                 # Проверяем лимит stop-loss
-                if self.position_manager.stop_loss_streak >= self.config.max_stop_loss_trades:
+                if self.position_manager.stop_loss_streak >= self.config.max_stop_loss_streak:
                     logger.error(
-                        f"⛔ TRADING HALTED: {self.position_manager.stop_loss_streak} "
-                        f"consecutive stop-losses"
+                        f"⛔ TRADING HALTED: {self.position_manager.stop_loss_streak} consecutive stop-losses"
                     )
-                    await asyncio.sleep(300)  # Пауза 5 минут
+                    await asyncio.sleep(300)
                     continue
 
                 # Проверяем статус открытых позиций
@@ -194,7 +195,6 @@ class TradingBot:
                 # Отправляем дневной отчет в 00:00
                 await self._check_daily_report()
 
-                # Пауза
                 await asyncio.sleep(1)
 
             except Exception as e:
@@ -203,7 +203,6 @@ class TradingBot:
 
     async def stop(self):
         """Остановка бота"""
-
         self.running = False
 
         logger.info("")
@@ -214,12 +213,11 @@ class TradingBot:
         # Останавливаем трекер
         await self.order_tracker.stop_monitoring()
 
-        # Останавливаем все стратегии
-        for strategy in self.strategies.values():
-            try:
-                await strategy.stop()
-            except Exception as e:
-                logger.error(f"Error stopping strategy: {e}")
+        # Останавливаем глобальный менеджер данных
+        try:
+            await self.market_data_manager.stop()
+        except Exception as e:
+            logger.error(f"Error stopping GlobalMarketDataManager: {e}")
 
         # Финальная статистика
         logger.info("")
@@ -251,7 +249,6 @@ class TradingBot:
 
     def _log_status(self, cycle: int):
         """Логирование текущего статуса"""
-
         logger.info("")
         logger.info(f"📍 ═══ Cycle {cycle} Status ═══")
         logger.info(f"  Open positions: {len(self.position_manager.open_positions)}")
@@ -264,8 +261,7 @@ class TradingBot:
         for name, strategy in self.strategies.items():
             status = strategy.get_status()
             logger.info(
-                f"    [{name}] Signals: {status['signals_count']}, "
-                f"Generated: {status['signals_generated']}"
+                f"    [{name}] Signals: {status['signals_count']}, Generated: {status['signals_generated']}"
             )
 
         # API статистика
@@ -285,36 +281,25 @@ class TradingBot:
 
     async def _check_daily_report(self):
         """Проверка и отправка дневного отчета"""
-
         now = datetime.now()
-
-        # Сбрасываем флаг в начале нового дня
         if now.hour == 0 and now.minute < 10:
             if self.daily_report_sent:
                 self.daily_report_sent = False
-
-        # Отправляем отчет в 00:00
         if now.hour == 0 and now.minute < 10 and not self.daily_report_sent:
             logger.info("Generating daily report...")
-
             stats = self.statistics.get_today_stats()
             await self.notifier.notify_daily_report(stats)
-
             self.daily_report_sent = True
             logger.info("Daily report sent")
 
 
 def main():
     """Точка входа"""
-
-    # Создаем event loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    # Создаем бота
     bot = TradingBot("config/config.json")
 
-    # Signal handlers для graceful shutdown
     def signal_handler(signum, frame):
         logger.info(f"\nReceived signal {signum}")
         bot.running = False
@@ -322,7 +307,6 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # Запускаем
     try:
         loop.run_until_complete(bot.start())
     finally:
