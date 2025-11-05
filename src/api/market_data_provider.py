@@ -11,11 +11,13 @@ import asyncio
 import time
 from typing import Callable
 
-from ..logger import logger
+from ..logger import get_app_logger
 from ..config import StrategyConfig, SignalConfig
 from .bybit_client import BybitClient
 from .bybit_websocket_client import BybitWebSocketClient
 from .common import Kline
+
+logger = get_app_logger()
 
 
 class MultiMarketDataProvider:

@@ -1,9 +1,8 @@
-import logging
 import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, Dict, List
+from typing import Literal, Dict
 
 WEBSOCKET_INTERVALS = {"1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M"}
 POLLING_INTERVALS = {"1s", "5s", "10s", "15s", "30s"}
@@ -49,9 +48,9 @@ class StrategyConfig:
         assert len(self.signals) > 0, "должен быть минимум один сигнал"
         assert self.position_size > 0, "position_size должен быть > 0"
         
-        # Для спота только direction=0
+        # Для спота только direction=1
         if self.leverage == 1:
-            assert self.direction == 0, "Для spot (leverage=1) direction должен быть 0"
+            assert self.direction == 1, "Для spot (leverage=1) direction должен быть 1"
 
     def is_spot(self) -> bool:
         return self.leverage == 1
@@ -282,8 +281,8 @@ class Config:
         if not api_key or not api_secret:
             raise ValueError("api_key или api_secret не найдены в конфигурации или в окружении")
 
-        testnet = str(os.getenv("BYBIT_TESTNET", data.get("api", {}).get("testnet", "")).lower()) == "true"
-        demo_mode = str(os.getenv("BYBIT_DEMO_MODE", data.get("api", {}).get("demo_mode", "")).lower()) == "true"
+        testnet = str(os.getenv("BYBIT_TESTNET", data.get("api", {}).get("testnet", ""))).lower() == "true"
+        demo_mode = str(os.getenv("BYBIT_DEMO_MODE", data.get("api", {}).get("demo_mode", ""))).lower() == "true"
 
         # Загрузка pairs (старый формат)
         pairs = []

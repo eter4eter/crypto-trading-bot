@@ -1,0 +1,1677 @@
+2025-10-27 12:06:49 - trading_bot - ERROR - Exception getting wallet balance: Http status code is not 200. (ErrCode: 401) (ErrTime: 09:06:49).
+Request → GET https://api.bybit.com/v5/account/wallet-balance: accountType=<src.api.bybit_client.BybitClient object at 0x1025e2a50>.
+2025-10-27 12:06:55 - trading_bot - ERROR - set_leverage failed after 3 attempts: BybitClient.set_leverage() got multiple values for argument 'category'
+2025-10-27 12:06:55 - trading_bot - ERROR - ❌ Fatal error: BybitClient.set_leverage() got multiple values for argument 'category'
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/main.py", line 74, in start
+    await self._initialize()
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/main.py", line 95, in _initialize
+    await self.position_manager.initialize()
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/trading/position_manager.py", line 51, in initialize
+    success = await self.client.set_leverage(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 40, in wrapper
+    return await func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 27, in wrapper
+    return await loop.run_in_executor(self._executor, partial_func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+TypeError: BybitClient.set_leverage() got multiple values for argument 'category'
+2025-10-27 12:18:11 - trading_bot - ERROR - Exception getting wallet balance: Http status code is not 200. (ErrCode: 401) (ErrTime: 09:18:11).
+Request → GET https://api.bybit.com/v5/account/wallet-balance: accountType=<src.api.bybit_client.BybitClient object at 0x104e52a50>.
+2025-10-27 12:18:17 - trading_bot - ERROR - set_leverage failed after 3 attempts: BybitClient.set_leverage() got multiple values for argument 'category'
+2025-10-27 12:18:17 - trading_bot - ERROR - ❌ Fatal error: BybitClient.set_leverage() got multiple values for argument 'category'
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/main.py", line 74, in start
+    await self._initialize()
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/main.py", line 95, in _initialize
+    await self.position_manager.initialize()
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/trading/position_manager.py", line 51, in initialize
+    success = await self.client.set_leverage(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 44, in wrapper
+    return await func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 28, in wrapper
+    return await loop.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 30, in <lambda>
+    lambda: func(*args, **kwargs)
+            ~~~~^^^^^^^^^^^^^^^^^
+TypeError: BybitClient.set_leverage() got multiple values for argument 'category'
+2025-10-27 12:22:44 - trading_bot - ERROR - Exception getting wallet balance: Http status code is not 200. (ErrCode: 401) (ErrTime: 09:22:44).
+Request → GET https://api.bybit.com/v5/account/wallet-balance: accountType=<src.api.bybit_client.BybitClient object at 0x104392900>.
+2025-10-27 12:22:50 - trading_bot - ERROR - set_leverage failed after 3 attempts: BybitClient.set_leverage() got multiple values for argument 'category'
+2025-10-27 12:22:50 - trading_bot - ERROR - ❌ Fatal error: BybitClient.set_leverage() got multiple values for argument 'category'
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/main.py", line 74, in start
+    await self._initialize()
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/main.py", line 95, in _initialize
+    await self.position_manager.initialize()
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/trading/position_manager.py", line 51, in initialize
+    success = await self.client.set_leverage(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 44, in wrapper
+    return await func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 28, in wrapper
+    return await loop.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 30, in <lambda>
+    lambda: func(*args, **kwargs)
+            ~~~~^^^^^^^^^^^^^^^^^
+TypeError: BybitClient.set_leverage() got multiple values for argument 'category'
+2025-10-27 12:23:18 - trading_bot - ERROR - Exception getting wallet balance: Http status code is not 200. (ErrCode: 401) (ErrTime: 09:23:18).
+Request → GET https://api.bybit.com/v5/account/wallet-balance: accountType=<src.api.bybit_client.BybitClient object at 0x104ba6900>.
+2025-10-27 12:23:24 - trading_bot - ERROR - set_leverage failed after 3 attempts: BybitClient.set_leverage() got multiple values for argument 'category'
+2025-10-27 12:23:24 - trading_bot - ERROR - ❌ Fatal error: BybitClient.set_leverage() got multiple values for argument 'category'
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/main.py", line 74, in start
+    await self._initialize()
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/main.py", line 95, in _initialize
+    await self.position_manager.initialize()
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/trading/position_manager.py", line 51, in initialize
+    success = await self.client.set_leverage(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 44, in wrapper
+    return await func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 28, in wrapper
+    return await loop.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_client.py", line 30, in <lambda>
+    lambda: func(*args, **kwargs)
+            ~~~~^^^^^^^^^^^^^^^^^
+TypeError: BybitClient.set_leverage() got multiple values for argument 'category'
+2025-10-27 12:27:10 - trading_bot - ERROR - Exception getting wallet balance: Http status code is not 200. (ErrCode: 401) (ErrTime: 09:27:10).
+Request → GET https://api.bybit.com/v5/account/wallet-balance: accountType=UNIFIED.
+2025-10-27 12:27:10 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: API key is invalid. (ErrCode: 10003) (ErrTime: 09:27:10).
+Request → POST https://api.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "1", "sellLeverage": "1"}.
+2025-10-27 12:27:21 - trading_bot - ERROR - Exception getting wallet balance: Http status code is not 200. (ErrCode: 401) (ErrTime: 09:27:21).
+Request → GET https://api.bybit.com/v5/account/wallet-balance: accountType=UNIFIED.
+2025-10-27 12:27:32 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: API key is invalid. (ErrCode: 10003) (ErrTime: 09:27:32).
+Request → POST https://api.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "1", "sellLeverage": "1"}.
+2025-10-27 12:39:34 - trading_bot - ERROR - Exception getting wallet balance: Http status code is not 200. (ErrCode: 401) (ErrTime: 09:39:34).
+Request → GET https://api.bybit.com/v5/account/wallet-balance: accountType=UNIFIED.
+2025-10-27 12:46:06 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 09:46:06).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "1", "sellLeverage": "1"}.
+2025-10-27 12:47:12 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 09:47:12).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "1", "sellLeverage": "1"}.
+2025-10-27 12:51:48 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 09:51:48).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "1", "sellLeverage": "1"}.
+2025-10-27 13:00:19 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 10:00:19).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "1", "sellLeverage": "1"}.
+2025-10-27 13:04:01 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 10:04:01).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "1", "sellLeverage": "1"}.
+2025-10-27 13:04:01 - trading_bot - ERROR - Exception setting leverage for PEPEUSDT: params error: symbol invalid PEPEUSDT (ErrCode: 10001) (ErrTime: 10:04:01).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "PEPEUSDT", "buyLeverage": "5", "sellLeverage": "5"}.
+2025-10-27 13:04:04 - trading_bot - ERROR - Exception getting klines: params error: Symbol Is Invalid (ErrCode: 10001) (ErrTime: 10:04:04).
+Request → GET https://api-testnet.bybit.com/v5/market/kline: category=linear&interval=15&limit=20&symbol=PEPEUSDT.
+2025-10-27 13:04:04 - trading_bot - ERROR - [FUTURES-LONG-PEPE] Failed to load historical data
+2025-10-27 13:04:10 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 163, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 13:04:12 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 163, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 13:04:12 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 163, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 13:04:12 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 163, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 13:46:04 - trading_bot - ERROR - Exception setting leverage for WIFUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 10:46:04).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "WIFUSDT", "buyLeverage": "3", "sellLeverage": "3"}.
+2025-10-27 13:46:04 - trading_bot - ERROR - Exception setting leverage for DOGEUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 10:46:04).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "DOGEUSDT", "buyLeverage": "2", "sellLeverage": "2"}.
+2025-10-27 14:01:58 - trading_bot - ERROR - Exception getting klines: Invalid period! (ErrCode: 10001) (ErrTime: 11:01:58).
+Request → GET https://api-testnet.bybit.com/v5/market/kline: category=spot&interval=30s&limit=30&symbol=BTCUSDT.
+2025-10-27 14:01:59 - trading_bot - ERROR - Exception getting klines: Invalid period! (ErrCode: 10001) (ErrTime: 11:01:59).
+Request → GET https://api-testnet.bybit.com/v5/market/kline: category=spot&interval=30s&limit=30&symbol=ETHUSDT.
+2025-10-27 14:01:59 - trading_bot - ERROR - [SPOT-BTC-ETH] Failed to load historical data
+2025-10-27 14:02:01 - trading_bot - ERROR - [FUTURES-LONG-ETH] Failed to load historical data
+2025-10-27 14:02:03 - trading_bot - ERROR - [FUTURES-SHORT-SOL] Failed to load last candle
+2025-10-27 14:02:05 - trading_bot - ERROR - [REVERSE-ADA] Failed to load historical data
+2025-10-27 14:19:46 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 11:19:46).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "5", "sellLeverage": "5"}.
+2025-10-27 14:19:46 - trading_bot - ERROR - Exception setting leverage for SOLUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 11:19:46).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "SOLUSDT", "buyLeverage": "3", "sellLeverage": "3"}.
+2025-10-27 14:19:46 - trading_bot - ERROR - Exception setting leverage for ADAUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 11:19:46).
+Request → POST https://api-testnet.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ADAUSDT", "buyLeverage": "2", "sellLeverage": "2"}.
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:00 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:01 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:01 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:01 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:01 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:01 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:01 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 14:20:09 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 169, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-27 20:56:24 - trading_bot - ERROR - Exception getting wallet balance: API key is invalid. (ErrCode: 10003) (ErrTime: 17:56:24).
+Request → GET https://api.bybit.com/v5/account/wallet-balance: accountType=UNIFIED.
+2025-10-27 20:56:25 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: API key is invalid. (ErrCode: 10003) (ErrTime: 17:56:25).
+Request → POST https://api.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "5", "sellLeverage": "5"}.
+2025-10-27 20:56:25 - trading_bot - ERROR - Exception setting leverage for SOLUSDT: API key is invalid. (ErrCode: 10003) (ErrTime: 17:56:25).
+Request → POST https://api.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "SOLUSDT", "buyLeverage": "3", "sellLeverage": "3"}.
+2025-10-27 20:56:25 - trading_bot - ERROR - Exception setting leverage for ADAUSDT: API key is invalid. (ErrCode: 10003) (ErrTime: 17:56:25).
+Request → POST https://api.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ADAUSDT", "buyLeverage": "2", "sellLeverage": "2"}.
+2025-10-27 21:12:04 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 18:12:04).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "5", "sellLeverage": "5"}.
+2025-10-27 21:12:04 - trading_bot - ERROR - Exception setting leverage for SOLUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 18:12:04).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "SOLUSDT", "buyLeverage": "3", "sellLeverage": "3"}.
+2025-10-27 21:12:04 - trading_bot - ERROR - Exception setting leverage for ADAUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 18:12:04).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ADAUSDT", "buyLeverage": "2", "sellLeverage": "2"}.
+2025-10-27 21:15:29 - trading_bot - ERROR - Exception setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 18:15:29).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "5", "sellLeverage": "5"}.
+2025-10-27 21:15:29 - trading_bot - ERROR - Exception setting leverage for SOLUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 18:15:29).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "SOLUSDT", "buyLeverage": "3", "sellLeverage": "3"}.
+2025-10-27 21:15:29 - trading_bot - ERROR - Exception setting leverage for ADAUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 18:15:29).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ADAUSDT", "buyLeverage": "2", "sellLeverage": "2"}.
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:13 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2025-10-28 08:26:14 - trading_bot - ERROR - Callback error: Event loop is closed
+Traceback (most recent call last):
+  File "/Users/iuokachurovskii/PycharmProjects/crypto-bot/src/api/bybit_websocket_client.py", line 170, in _handle_kline
+    asyncio.run_coroutine_threadsafe(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        callback(symbol, kline),
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+        self._loop
+        ^^^^^^^^^^
+    )
+    ^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/tasks.py", line 1003, in run_coroutine_threadsafe
+    loop.call_soon_threadsafe(callback)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 878, in call_soon_threadsafe
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/iuokachurovskii/.pyenv/versions/3.13.5/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed

@@ -7,11 +7,13 @@ import time
 from typing import Callable
 from dataclasses import dataclass
 
-from ..logger import logger
+from ..logger import get_app_logger
 from ..config import StrategyConfig
 from .bybit_client import BybitClient
 from .bybit_websocket_client import BybitWebSocketClient
 from .common import Kline
+
+logger = get_app_logger()
 
 
 @dataclass
@@ -167,7 +169,7 @@ class GlobalMarketDataManager:
         logger.info(f"Запуск {len(ws_keys)} WebSocket подписок...")
         for symbol, frame, category in ws_keys:
             try:
-                await self.ws_client.subscribe_kline(
+                self.ws_client.subscribe_kline(
                     category=category,
                     symbol=symbol,
                     interval=frame,

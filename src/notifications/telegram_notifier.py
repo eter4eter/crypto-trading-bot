@@ -2,8 +2,10 @@ import asyncio
 from datetime import datetime
 import aiohttp
 
-from ..logger import logger
+from ..logger import get_app_logger
 from ..config import TelegramConfig
+
+logger = get_app_logger()
 
 
 class TelegramNotifier:

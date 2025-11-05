@@ -8,7 +8,7 @@ from src.api.bybit_client import BybitClient
 from src.api.bybit_websocket_client import BybitWebSocketClient
 from src.api.global_market_data_manager import GlobalMarketDataManager
 from src.config import Config
-from src.logger import logger, setup_logger
+from src.logger import get_app_logger, setup_logger
 from src.monitoring.statistics import StatisticsMonitor
 from src.notifications.telegram_notifier import TelegramNotifier
 from src.storage.database import Database
@@ -16,6 +16,7 @@ from src.strategy.multi_signal_strategy import MultiSignalStrategy, SignalResult
 from src.trading.order_tracker import OrderTracker
 from src.trading.position_manager import PositionManager
 
+logger = get_app_logger()
 
 class TradingBot:
     def __init__(self, config_path: str = "config/config.json") -> None:

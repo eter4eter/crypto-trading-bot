@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Callable, Any
 
-from ..logger import logger
+from ..logger import get_app_logger
 from ..config import PairConfig
 from ..api.common import Kline
 from ..api.bybit_websocket_client import BybitWebSocketClient
 from ..api.bybit_client import BybitClient
 from ..api.market_data_provider import MarketDataProvider
+
+logger = get_app_logger()
 
 
 @dataclass

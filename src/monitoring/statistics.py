@@ -1,7 +1,9 @@
 from datetime import datetime
 
-from ..logger import logger
+from ..logger import get_app_logger
 from ..storage.database import Database
+
+logger = get_app_logger()
 
 
 class StatisticsMonitor:

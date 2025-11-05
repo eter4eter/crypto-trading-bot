@@ -10,7 +10,9 @@ from typing import Any, TypeVar, ParamSpec, Coroutine, Callable, Literal
 from pybit.unified_trading import HTTP
 
 from .common import Kline, Singleton
-from ..logger import logger
+from ..logger import get_app_logger
+
+logger = get_app_logger()
 
 
 P = ParamSpec("P")
