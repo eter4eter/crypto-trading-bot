@@ -4,13 +4,15 @@ from datetime import datetime, timedelta
 
 from ..api.bybit_client import BybitClient
 from ..config import Config, PairConfig
-from ..logger import logger
+from ..logger import get_app_logger
 from ..notifications.telegram_notifier import TelegramNotifier
 from ..storage.database import Database
 from ..storage.models import OrderRecord, SignalRecord
 from ..strategy.correlation_strategy import Signal
 from ..strategy.multi_signal_strategy import SignalResult
 from ..trading.order_tracker import OrderTracker
+
+logger = get_app_logger()
 
 
 class PositionManager:

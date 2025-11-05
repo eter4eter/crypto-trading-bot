@@ -10,7 +10,9 @@ from ..api.bybit_client import BybitClient
 from ..api.bybit_websocket_client import BybitWebSocketClient
 from ..api.common import Kline
 from ..config import SignalConfig, StrategyConfig
-from ..logger import logger
+from ..logger import get_app_logger
+
+logger = get_app_logger()
 
 
 @dataclass
@@ -211,8 +213,8 @@ class MultiSignalStrategy:
                 category=self.config.get_market_category(),
                 symbol=symbol,
             )
-            if ticker and "result" in ticker and "list" in ticker["result"]:
-                return float(ticker["result"]["list"][0].get("lastPrice", 0))
+            if ticker and isinstance(ticker, dict):
+                return float(ticker.get("lastPrice", 0))
             return 0.0
         except Exception as e:
             logger.error(f"Error getting current price for {symbol}: {e}")

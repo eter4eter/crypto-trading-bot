@@ -1,9 +1,11 @@
 import asyncio
 from datetime import datetime
 
-from ..logger import logger
+from ..logger import get_app_logger
 from ..api.bybit_client import BybitClient
 from ..storage.models import OrderRecord
+
+logger = get_app_logger()
 
 
 class OrderTracker:

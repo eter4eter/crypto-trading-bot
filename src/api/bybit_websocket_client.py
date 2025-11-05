@@ -8,7 +8,9 @@ from typing import Callable, Any
 from pybit.unified_trading import WebSocket as _WebSocket
 
 from .common import Kline, Singleton
-from ..logger import logger
+from ..logger import get_app_logger
+
+logger = get_app_logger()
 
 
 class WebSocket(_WebSocket):

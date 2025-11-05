@@ -11,7 +11,9 @@ from .sql import (
     ORDERS_PAIR_INDEX,
     SIGNALS_PAIR_INDEX,
 )
-from ..logger import logger
+from ..logger import get_app_logger
+
+logger = get_app_logger()
 
 
 def adapt_date_iso(val):
