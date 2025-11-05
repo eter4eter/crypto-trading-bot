@@ -1,13 +1,8 @@
-"""
-Мультисигнальная стратегия согласно техническому заданию
-Поддержка множественных сигналов на одну стратегию
-"""
-
 import asyncio
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Callable, Any, Literal
+from typing import Callable, Literal
 
 from ..config import StrategyConfig, SignalConfig
 from ..api.bybit_client import BybitClient
@@ -23,7 +18,7 @@ class SignalResult:
     strategy_name: str
     action: Literal["Buy", "Sell", "None"]
     index_pair: str
-    target_pairs: List[str]
+    target_pairs: list[str]
     target_price: float
     index_change: float
     target_change: float
@@ -37,16 +32,7 @@ class SignalResult:
 
 
 class MultiSignalStrategy:
-    """
-    Стратегия с поддержкой множественных сигналов согласно ТЗ
-    
-    Полная реализация логики из ТЗ:
-    1. Накопление тиков в массивах tick_window
-    2. Сравнение первого и последнего значения в массиве
-    3. Проверка корреляции между валютами
-    4. Применение логики reverse и direction
-    5. Генерация сигнала при соблюдении условий
-    """
+    """"""
     
     def __init__(
         self,
@@ -59,14 +45,14 @@ class MultiSignalStrategy:
         self.ws_client = ws_client
         
         # Буферы для каждого сигнала
-        self.signal_buffers: Dict[str, Dict[str, Any]] = {}
-        self.signal_callbacks: Dict[str, Callable] = {}
+        self.signal_buffers: dict[str, dict[str, deque]] = {}
+        self.signal_callbacks: dict[str, Callable] = {}
         
         # Локи для каждого сигнала
-        self.signal_locks: Dict[str, asyncio.Lock] = {}
+        self.signal_locks: dict[str, asyncio.Lock] = {}
         
         # Общие callbackи
-        self.strategy_callback: Callable = None
+        self.strategy_callback: Callable | None = None
         
         # Инициализируем буферы для всех сигналов
         for signal_name, signal_config in config.signals.items():
@@ -74,7 +60,7 @@ class MultiSignalStrategy:
             
             self.signal_buffers[signal_name] = {
                 "index_prices": deque(maxlen=window_size),
-                "target_prices": {}  # Dict[str, deque]
+                "target_prices": {}
             }
             
             # Буферы для каждой торговой пары
@@ -195,16 +181,13 @@ class MultiSignalStrategy:
         """Остановка стратегии"""
         logger.info(f"[{self.config.name}] ⏹ Останавливаем стратегию...")
         
-        # Очищаем буферы корректно
+        # Очищаем буферы
         for signal_name in self.signal_buffers.keys():
             async with self.signal_locks[signal_name]:
                 buffer = self.signal_buffers[signal_name]
                 buffer["index_prices"].clear()
-                
-                # Очищаем словарь target_prices корректно
-                target_prices_dict = buffer["target_prices"]
-                for pair_name, target_deque in target_prices_dict.items():
-                    target_deque.clear()
+                for target_buffer in buffer["target_prices"].values():
+                    target_buffer.clear()
         
         logger.info(f"[{self.config.name}] ✅ Стратегия остановлена")
 
@@ -308,7 +291,7 @@ class MultiSignalStrategy:
             if not self.config.should_take_signal(action):
                 continue
             
-            # Проверяем проскальзывание (реальная реализация)
+            # Проверяем проскальзывание
             current_price = await self._get_current_price(trade_pair)
             price_diff_percent = abs((current_price - target_last) / target_last) * 100
             slippage_ok = price_diff_percent <= self.config.price_change_threshold
@@ -377,11 +360,8 @@ class MultiSignalStrategy:
             async with self.signal_locks[signal_name]:
                 buffer = self.signal_buffers[signal_name]
                 buffer["index_prices"].clear()
-                
-                # Очищаем словарь target_prices корректно
-                target_prices_dict = buffer["target_prices"]
-                for pair_name, target_deque in target_prices_dict.items():
-                    target_deque.clear()
+                for target_buffer in buffer["target_prices"].values():
+                    target_buffer.clear()
         
         self.history_loaded = False
         logger.info(f"[{self.config.name}] 🔄 Буферы сброшены")

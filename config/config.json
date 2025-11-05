@@ -3,83 +3,14 @@
     "api_key": "",
     "api_secret": "",
     "testnet": false,
-    "demo_mode": true,
-    "logging_level": "DEBUG"
+    "demo_mode": true
   },
   "global": {
-    "max_stop_loss_streak": 5,
-    "database_path": "data/trading.db"
+    "max_stop_loss_trades": 2,
+    "database_path": "data/trading.db",
+    "log_file": "logs/trading_log.txt",
+    "logging_level": "DEBUG"
   },
-  "pairs": [
-    {
-      "name": "SPOT-BTC-ETH",
-      "dominant_pair": "BTCUSDT",
-      "target_pair": "ETHUSDT",
-      "tick_window": 30,
-      "timeframe": "1",
-      "dominant_threshold": 0.5,
-      "target_max_threshold": 0.3,
-      "direction": 0,
-      "reverse": 0,
-      "price_change_threshold": 0.5,
-      "position_size_percent": 1.0,
-      "leverage": 1,
-      "take_profit_percent": 2.0,
-      "stop_loss_percent": 1.0,
-      "enabled": true
-    },
-    {
-      "name": "FUTURES-LONG-ETH",
-      "dominant_pair": "BTCUSDT",
-      "target_pair": "ETHUSDT",
-      "tick_window": 20,
-      "timeframe": "1",
-      "dominant_threshold": 0.5,
-      "target_max_threshold": 0.3,
-      "direction": 1,
-      "reverse": 0,
-      "price_change_threshold": 1.0,
-      "position_size_percent": 1.0,
-      "leverage": 5,
-      "take_profit_percent": 3.0,
-      "stop_loss_percent": 1.5,
-      "enabled": true
-    },
-    {
-      "name": "FUTURES-SHORT-SOL",
-      "dominant_pair": "BTCUSDT",
-      "target_pair": "SOLUSDT",
-      "tick_window": 0,
-      "timeframe": "1",
-      "dominant_threshold": 0.5,
-      "target_max_threshold": 0.3,
-      "direction": -1,
-      "reverse": 0,
-      "price_change_threshold": 0.8,
-      "position_size_percent": 1.0,
-      "leverage": 3,
-      "take_profit_percent": 4.0,
-      "stop_loss_percent": 2.0,
-      "enabled": false
-    },
-    {
-      "name": "REVERSE-ADA",
-      "dominant_pair": "BTCUSDT",
-      "target_pair": "ADAUSDT",
-      "tick_window": 24,
-      "timeframe": "1",
-      "dominant_threshold": 0.5,
-      "target_max_threshold": 0.3,
-      "direction": 0,
-      "reverse": 1,
-      "price_change_threshold": 1.5,
-      "position_size_percent": 1.0,
-      "leverage": 2,
-      "take_profit_percent": 5.0,
-      "stop_loss_percent": 2.5,
-      "enabled": false
-    }
-  ],
   "strategies": {
     "WIF-USDT-threshold": {
       "trade_pairs": ["WIFUSDT"],
@@ -95,8 +26,8 @@
           "index": "BTCUSDT",
           "frame": "1",
           "tick_window": 30,
-          "index_change_threshold": 1.0,
-          "target": 0.75,
+          "index_change_threshold": 0.01,
+          "target": 0.05,
           "direction": 0,
           "reverse": 0
         },
@@ -104,50 +35,50 @@
           "index": "ETHUSDT",
           "frame": "5",
           "tick_window": 20,
-          "index_change_threshold": 1.5,
-          "target": 1.0,
+          "index_change_threshold": 0.015,
+          "target": 0.03,
           "direction": 1,
           "reverse": 1
         }
       }
     },
-    "BTC-scalping": {
+    "BTC-dominance": {
       "trade_pairs": ["BTCUSDT"],
       "leverage": 3,
       "tick_window": 0,
-      "price_change_threshold": 0.02,
+      "price_change_threshold": 0.03,
       "stop_take_percent": 0.008,
       "position_size": 200,
       "direction": 1,
-      "enabled": false,
+      "enabled": true,
       "signals": {
-        "momentum_signal": {
+        "fear_greed_index": {
           "index": "BTCUSDT",
-          "frame": "5s",
+          "frame": "15",
           "tick_window": 0,
-          "index_change_threshold": 0.5,
-          "target": 0.8,
-          "direction": 1,
-          "reverse": 0
+          "index_change_threshold": 0.02,
+          "target": 0.04,
+          "direction": -1,
+          "reverse": 1
         }
       }
     },
-    "PEPE-correlation": {
-      "trade_pairs": ["PEPEUSDT"],
-      "leverage": 2,
-      "tick_window": 30,
-      "price_change_threshold": 0.1,
+    "ETH-correlation-spot": {
+      "trade_pairs": ["ETHUSDT"],
+      "leverage": 1,
+      "tick_window": 20,
+      "price_change_threshold": 0.02,
       "stop_take_percent": 0.01,
-      "position_size": 150,
+      "position_size": 50,
       "direction": 0,
-      "enabled": true,
+      "enabled": false,
       "signals": {
         "btc_lead": {
           "index": "BTCUSDT",
           "frame": "1",
-          "tick_window": 30,
-          "index_change_threshold": 1.0,
-          "target": 0.75,
+          "tick_window": 15,
+          "index_change_threshold": 0.008,
+          "target": 0.025,
           "direction": 0,
           "reverse": 0
         }

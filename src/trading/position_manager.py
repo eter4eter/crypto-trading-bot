@@ -154,7 +154,7 @@ class PositionManager:
         logger.debug(f"Multi signal saved to DB: ID={signal_id}")
 
         # Проверяем лимит stop-loss
-        if self.stop_loss_streak >= self.config.max_stop_loss_streak:
+        if self.stop_loss_streak >= self.config.max_stop_loss_trades:
             logger.error(
                 f"⛔ Stop-loss streak limit reached ({self.stop_loss_streak}). "
                 f"Trading halted for safety."
@@ -321,7 +321,7 @@ class PositionManager:
         logger.debug(f"Signal saved to DB: ID={signal_id}")
 
         # Проверяем лимит stop-loss
-        if self.stop_loss_streak >= self.config.max_stop_loss_streak:
+        if self.stop_loss_streak >= self.config.max_stop_loss_trades:
             logger.error(
                 f"⛔ Stop-loss streak limit reached ({self.stop_loss_streak}). "
                 f"Trading halted for safety."

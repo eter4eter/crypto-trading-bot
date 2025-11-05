@@ -11,7 +11,7 @@ POLLING_INTERVALS = {"1s", "5s", "10s", "15s", "30s"}
 
 @dataclass
 class SignalConfig:
-    """Конфигурация сигнала согласно ТЗ"""
+    """Конфигурация сигнала"""
     index: str                    # "BTC-USDT" - базовая пара
     frame: str                    # "1s", "5s", "1", "5", "15", "60", "D", "W", "M"
     tick_window: int              # размер окна для накопления
@@ -31,16 +31,16 @@ class SignalConfig:
 
 @dataclass
 class StrategyConfig:
-    """Конфигурация стратегии согласно ТЗ"""
+    """Конфигурация стратегии"""
     name: str
-    trade_pairs: List[str]        # ["WIF-USDT-SWAP"] - пары для торговли
-    leverage: int                 # плечо (1 = spot, >1 = futures)
-    tick_window: int              # основной размер окна
-    price_change_threshold: float # максимальное проскальзывание (%)
-    stop_take_percent: float      # размер тейка/стопа (%)
-    position_size: int            # размер позиции
-    direction: Literal[-1, 0, 1]  # -1=short, 0=both, 1=long
-    signals: Dict[str, SignalConfig] # блок сигналов
+    trade_pairs: list[str]           # ["WIF-USDT-SWAP"] - пары для торговли
+    leverage: int                    # плечо (1 = spot, >1 = futures)
+    tick_window: int                 # основной размер окна
+    price_change_threshold: float    # максимальное проскальзывание (%)
+    stop_take_percent: float         # размер тейка/стопа (%)
+    position_size: int               # размер позиции
+    direction: Literal[-1, 0, 1]     # -1=short, 0=both, 1=long
+    signals: dict[str, SignalConfig] # блок сигналов
     enabled: bool = True
 
     def __post_init__(self):
@@ -243,7 +243,7 @@ class Config:
     demo_mode: bool
 
     # global settings
-    max_stop_loss_streak: int
+    max_stop_loss_trades: int
 
     # db
     database_path: str = "data/trading.db"
@@ -258,6 +258,7 @@ class Config:
     telegram: TelegramConfig = None
 
     logging_level: str = "INFO"
+    log_file: str = ""
 
     @classmethod
     def load(cls, config_path: str = "../config/config.json") -> "Config":
@@ -315,7 +316,7 @@ class Config:
             notify_daily_report=telegram_data.get("notify_daily_report", True)
         )
 
-        log_level = data.get("api", {}).get("logging_level", "INFO")
+        log_level = data.get("global", {}).get("logging_level", "INFO")
         if log_level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
             log_level = "INFO"
 
@@ -324,7 +325,7 @@ class Config:
             api_secret=api_secret,
             testnet=testnet,
             demo_mode=demo_mode,
-            max_stop_loss_streak=data.get("global", {}).get("max_stop_loss_streak"),
+            max_stop_loss_trades=data.get("global", {}).get("max_stop_loss_trades"),
             database_path=data.get("global", {}).get("database_path", "data/trading.db"),
             pairs=pairs,
             strategies=strategies,

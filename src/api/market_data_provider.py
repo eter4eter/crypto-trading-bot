@@ -1,9 +1,7 @@
 import asyncio
 import time
-from typing import Callable, Any
-from datetime import datetime
+from typing import Callable
 
-from backup.strategies.base_strategy import MarketData
 from ..logger import logger
 from ..config import PairConfig
 from .bybit_client import BybitClient

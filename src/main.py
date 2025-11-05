@@ -176,7 +176,7 @@ class TradingBot:
 
             try:
                 # Проверяем лимит stop-loss
-                if self.position_manager.stop_loss_streak >= self.config.max_stop_loss_streak:
+                if self.position_manager.stop_loss_streak >= self.config.max_stop_loss_trades:
                     logger.error(
                         f"⛔ TRADING HALTED: {self.position_manager.stop_loss_streak} "
                         f"consecutive stop-losses"

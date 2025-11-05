@@ -4,9 +4,10 @@
     "mode": "demo",
     "log_file": "logs/trading_log.txt",
     "request_interval": 1,
-    "restart": 1
+    "restart": 1,
+    "logging_level": "DEBUG"
   },
-  "api_credentials": {
+  "api": {
     "api_key": "",
     "api_secret": "",
     "testnet": true,
