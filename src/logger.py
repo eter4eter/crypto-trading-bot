@@ -1,35 +1,65 @@
 import logging
+import os
 import sys
-
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
+from typing import Optional
+
+DEFAULT_LOG_NAME = "trading_bot"
+DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_LOG_DIR = "logs"
+DEFAULT_LOG_FILE = "trading_bot.log"
+DEFAULT_ERR_FILE = "errors.log"
 
 
-def setup_logger(name: str = "trading_bot", level: str = "INFO") -> logging.Logger:
-    global logger
+def setup_logger(
+    name: Optional[str] = None,
+    level: Optional[str] = None,
+    log_dir: Optional[str] = None,
+    log_file: Optional[str] = None,
+    err_file: Optional[str] = None,
+    console: bool = True,
+    propagate: bool = False,
+) -> logging.Logger:
+    """
+    Конфигурация логгера с параметрами из конфигурации приложения и/или окружения.
 
-    level = getattr(logging, level.upper())
+    Приоритет источников настроек (от большего к меньшему):
+    1) Параметры функции
+    2) Переменные окружения: LOG_NAME, LOG_LEVEL, LOG_DIR, LOG_FILE, LOG_ERR_FILE, LOG_CONSOLE
+    3) Значения по умолчанию (DEFAULT_*)
+    """
 
-    Path("logs").mkdir(exist_ok=True)
+    log_name = name or os.getenv("LOG_NAME", DEFAULT_LOG_NAME)
+    log_level_name = (level or os.getenv("LOG_LEVEL", DEFAULT_LOG_LEVEL)).upper()
+    log_level = getattr(logging, log_level_name, logging.INFO)
 
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
+    dir_path = Path(log_dir or os.getenv("LOG_DIR", DEFAULT_LOG_DIR))
+    file_name = log_file or os.getenv("LOG_FILE", DEFAULT_LOG_FILE)
+    err_name = err_file or os.getenv("LOG_ERR_FILE", DEFAULT_ERR_FILE)
+
+    enable_console = console if console is not None else os.getenv("LOG_CONSOLE", "1") == "1"
+
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger(log_name)
+    logger.setLevel(log_level)
     logger.handlers.clear()
+    logger.propagate = propagate
 
     formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+    if enable_console:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(log_level)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
 
-    # rotating file handler (max 10MB, 5 files)
     file_handler = RotatingFileHandler(
-        "logs/trading_bot.log",
+        dir_path / file_name,
         maxBytes=10 * 1024 * 1024,
         backupCount=5,
         encoding="utf-8",
@@ -38,9 +68,8 @@ def setup_logger(name: str = "trading_bot", level: str = "INFO") -> logging.Logg
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    # errors handler
     error_handler = RotatingFileHandler(
-        "logs/errors.log",
+        dir_path / err_name,
         maxBytes=10 * 1024 * 1024,
         backupCount=5,
         encoding="utf-8",
@@ -52,4 +81,5 @@ def setup_logger(name: str = "trading_bot", level: str = "INFO") -> logging.Logg
     return logger
 
 
-logger = setup_logger(level="DEBUG")
+# Глобальный логгер, может быть переопределен вызовом setup_logger() в entrypoint
+logger = setup_logger()
