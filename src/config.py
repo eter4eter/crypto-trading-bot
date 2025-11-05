@@ -3,10 +3,80 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Dict, List
 
 WEBSOCKET_INTERVALS = {"1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M"}
 POLLING_INTERVALS = {"1s", "5s", "10s", "15s", "30s"}
+
+
+@dataclass
+class SignalConfig:
+    """Конфигурация сигнала"""
+    index: str                    # "BTC-USDT" - базовая пара
+    frame: str                    # "1s", "5s", "1", "5", "15", "60", "D", "W", "M"
+    tick_window: int              # размер окна для накопления
+    index_change_threshold: float # порог изменения базовой пары (%)
+    target: float                 # целевое значение показателя
+    direction: Literal[-1, 0, 1] # -1, 0, 1 - направление движения показателя
+    reverse: Literal[0, 1]        # 0, 1 - логика инверсии
+
+    def __post_init__(self):
+        assert self.index, "index не может быть пустым"
+        assert self.frame, "frame не может быть пустым"
+        assert self.tick_window >= 0, "tick_window должен быть >= 0"
+        assert self.index_change_threshold > 0, "index_change_threshold должен быть > 0"
+        assert self.direction in [-1, 0, 1], "direction должен быть -1, 0 или 1"
+        assert self.reverse in [0, 1], "reverse должен быть 0 или 1"
+
+
+@dataclass
+class StrategyConfig:
+    """Конфигурация стратегии"""
+    name: str
+    trade_pairs: list[str]           # ["WIF-USDT-SWAP"] - пары для торговли
+    leverage: int                    # плечо (1 = spot, >1 = futures)
+    tick_window: int                 # основной размер окна
+    price_change_threshold: float    # максимальное проскальзывание (%)
+    stop_take_percent: float         # размер тейка/стопа (%)
+    position_size: int               # размер позиции
+    direction: Literal[-1, 0, 1]     # -1=short, 0=both, 1=long
+    signals: dict[str, SignalConfig] # блок сигналов
+    enabled: bool = True
+
+    def __post_init__(self):
+        assert self.trade_pairs, "trade_pairs не может быть пустым"
+        assert self.leverage >= 1, "leverage должен быть >= 1"
+        assert len(self.signals) > 0, "должен быть минимум один сигнал"
+        assert self.position_size > 0, "position_size должен быть > 0"
+        
+        # Для спота только direction=0
+        if self.leverage == 1:
+            assert self.direction == 0, "Для spot (leverage=1) direction должен быть 0"
+
+    def is_spot(self) -> bool:
+        return self.leverage == 1
+
+    def is_futures(self) -> bool:
+        return self.leverage > 1
+
+    def get_market_category(self) -> str:
+        return "spot" if self.is_spot() else "linear"
+
+    def get_pair_category(self, symbol: str) -> str:
+        """Категория рынка для конкретной пары.
+        По умолчанию возвращает категорию всей стратегии (fallback).
+        Переопределите в конфиге при необходимости per-symbol логики.
+        """
+        return self.get_market_category()
+
+    def should_take_signal(self, signal_action: str) -> bool:
+        if self.direction == 0:
+            return True
+        elif self.direction == 1:
+            return signal_action == "Buy"
+        elif self.direction == -1:
+            return signal_action == "Sell"
+        return False
 
 
 @dataclass
@@ -180,18 +250,22 @@ class Config:
     demo_mode: bool
 
     # global settings
-    max_stop_loss_streak: int
+    max_stop_loss_trades: int
 
     # db
     database_path: str = "data/trading.db"
 
-    # trade pairs
+    # trade pairs (старый формат)
     pairs: list[PairConfig] = field(default_factory=list)
+    
+    # strategies (новый формат ТЗ)
+    strategies: Dict[str, StrategyConfig] = field(default_factory=dict)
 
     # telegram
     telegram: TelegramConfig = None
 
     logging_level: str = "INFO"
+    log_file: str = ""
 
     @classmethod
     def load(cls, config_path: str = "../config/config.json") -> "Config":
@@ -208,15 +282,35 @@ class Config:
         if not api_key or not api_secret:
             raise ValueError("api_key или api_secret не найдены в конфигурации или в окружении")
 
-        testnet = str(os.getenv("BYBIT_TESTNET", data.get("api", {}).get("testnet", ""))).lower() == "true"
-        demo_mode = str(os.getenv("BYBIT_DEMO_MODE", data.get("api", {}).get("demo_mode", ""))).lower() == "true"
+        testnet = str(os.getenv("BYBIT_TESTNET", data.get("api", {}).get("testnet", "")).lower()) == "true"
+        demo_mode = str(os.getenv("BYBIT_DEMO_MODE", data.get("api", {}).get("demo_mode", "")).lower()) == "true"
 
+        # Загрузка pairs (старый формат)
         pairs = []
         for pair_data in data.get("pairs", [])[:13]:
             pairs.append(PairConfig(**pair_data))
 
-        if not pairs:
-            raise ValueError("Не найдены пары для торговли")
+        # Загрузка strategies (новый формат ТЗ)
+        strategies = {}
+        strategies_data = data.get("strategies", {})
+        
+        for strategy_name, strategy_data in strategies_data.items():
+            # Парсим сигналы
+            signals = {}
+            signals_data = strategy_data.get("signals", {})
+            
+            for signal_name, signal_data in signals_data.items():
+                signals[signal_name] = SignalConfig(**signal_data)
+            
+            # Создаем стратегию
+            strategy_data_copy = strategy_data.copy()
+            strategy_data_copy["signals"] = signals
+            strategy_data_copy["name"] = strategy_name
+            
+            strategies[strategy_name] = StrategyConfig(**strategy_data_copy)
+
+        if not pairs and not strategies:
+            raise ValueError("Не найдены пары или стратегии для торговли")
 
         telegram_data = data.get("telegram", {})
         telegram = TelegramConfig(
@@ -229,7 +323,7 @@ class Config:
             notify_daily_report=telegram_data.get("notify_daily_report", True)
         )
 
-        log_level = data.get("api", {}).get("logging_level", "INFO")
+        log_level = data.get("global", {}).get("logging_level", "INFO")
         if log_level.upper() not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
             log_level = "INFO"
 
@@ -238,9 +332,10 @@ class Config:
             api_secret=api_secret,
             testnet=testnet,
             demo_mode=demo_mode,
-            max_stop_loss_streak=data.get("global", {}).get("max_stop_loss_streak"),
+            max_stop_loss_trades=data.get("global", {}).get("max_stop_loss_trades"),
             database_path=data.get("global", {}).get("database_path", "data/trading.db"),
             pairs=pairs,
+            strategies=strategies,
             telegram=telegram,
             logging_level=log_level,
         )
@@ -249,3 +344,8 @@ class Config:
     def enabled_pairs(self) -> list[PairConfig]:
         """Получить только включенные пары"""
         return [p for p in self.pairs if p.enabled]
+        
+    @property
+    def enabled_strategies(self) -> Dict[str, StrategyConfig]:
+        """Получить только включенные стратегии"""
+        return {name: strategy for name, strategy in self.strategies.items() if strategy.enabled}

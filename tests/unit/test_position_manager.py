@@ -147,7 +147,7 @@ class TestPositionManager:
 
         # Устанавливаем максимальную серию
         position_manager.stop_loss_streak = 5
-        position_manager.config.max_stop_loss_streak = 3
+        position_manager.config.max_stop_loss_trades = 3
 
         success = await position_manager.execute_signal(pair, sample_signal)
 

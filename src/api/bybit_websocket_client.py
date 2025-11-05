@@ -97,7 +97,8 @@ class BybitWebSocketClient(metaclass=Singleton):
         # Создаем WebSocket для этой подписки
         ws = WebSocket(
             testnet=self.testnet,
-            channel_type=category
+            # demo=self.demo, # не работает ?
+            channel_type=category,
         )
 
         self.ws_connections[ws_key] = ws
