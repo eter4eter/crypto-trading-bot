@@ -3,7 +3,7 @@
 
 Единый провайдер для всех стратегий, который:
 1. Инициализируется один раз
-2. Принимает регистрации от множественных стратегий  
+2. Принимает регистрации от множественных стратегий
 3. Оптимизирует подписки/polling для всех уникальных пар+frame
 4. Транслирует данные в зарегистрированные стратегии
 """
@@ -14,7 +14,7 @@ from typing import Dict, Set, List, Callable, Tuple
 from dataclasses import dataclass
 
 from ..logger import logger
-from ..config import StrategyConfig, SignalConfig
+from ..config import StrategyConfig
 from .bybit_client import BybitClient
 from .bybit_websocket_client import BybitWebSocketClient
 from .common import Kline
@@ -33,71 +33,427 @@ class SubscriptionRequest:
 class GlobalMarketDataManager:
     """
     Глобальный менеджер рыночных данных для всех стратегий
-    
+
     Централизованно управляет:
     - WebSocket подписками для минутных интервалов
-    - REST polling для секундных интервалов  
+    - REST polling для секундных интервалов
     - Оптимизацией дублирующихся запросов
     - Трансляцией данных в зарегистрированные стратегии
     """
-    
+
     def __init__(
         self,
         rest_client: BybitClient,
         ws_client: BybitWebSocketClient,
-        market_category: str = "linear"
+        market_category: str = "linear",
     ):
         self.rest_client = rest_client
         self.ws_client = ws_client
         self.market_category = market_category
-        
-        # Активные подписки от стратегий
+
+        # Активные подписки от стратегий: {(symbol, frame): [SubscriptionRequest, ...]}
         self.subscriptions: Dict[Tuple[str, str], List[SubscriptionRequest]] = {}
-        
-        # Активные WebSocket подписки
+
+        # Активные WebSocket подписки {(symbol, frame)}
         self.active_ws_subscriptions: Set[Tuple[str, str]] = set()
-        
+
         # Активные polling задачи (группированные по интервалу)
         self.polling_tasks: Dict[str, asyncio.Task] = {}
         self.polling_active = False
         self.last_poll_times: Dict[str, float] = {}
-        
-        # Регистрация стратегий
+
+        # Зарегистрированные стратегии
         self.registered_strategies: Set[str] = set()
-        
+
         self.is_running = False
-        
+
         logger.info("🌍 GlobalMarketDataManager инициализирован")
 
-    def register_strategy(self, strategy_config: StrategyConfig, kline_callback: Callable[[str, Kline], None]):
-        """
-        Регистрация стратегии и её потребностей в данных
-        
-        Args:
-            strategy_config: Конфигурация стратегии
-            kline_callback: Callback для получения kline данных
-        """
-        
+    def register_strategy(
+        self, strategy_config: StrategyConfig, kline_callback: Callable[[str, Kline], None]
+    ) -> None:
+        """Регистрация стратегии и её потребностей в данных."""
+
         strategy_name = strategy_config.name
-        
+
         if strategy_name in self.registered_strategies:
             logger.warning(f"[{strategy_name}] Стратегия уже зарегистрирована")
             return
-        
+
         logger.info(f"[{strategy_name}] 📝 Регистрация стратегии...")
-        
-        # Анализируем все signals стратегии
+
         subscription_count = 0
-        
-        for signal_name, signal_config in strategy_config.signals.items():
+
+        # Анализируем все signals стратегии
+        for _, signal_config in strategy_config.signals.items():
             # Определяем источник данных по frame
             source_type = "polling" if signal_config.frame.endswith("s") else "websocket"
-            
+
             # Регистрируем index пару
             self._add_subscription(
                 strategy_name=strategy_name,
                 symbol=signal_config.index,
                 frame=signal_config.frame,
                 callback=kline_callback,
-                source_type=source_type
-            )\n            subscription_count += 1\n            \n            # Регистрируем все target пары\n            for trade_pair in strategy_config.trade_pairs:\n                self._add_subscription(\n                    strategy_name=strategy_name,\n                    symbol=trade_pair,\n                    frame=signal_config.frame,\n                    callback=kline_callback,\n                    source_type=source_type\n                )\n                subscription_count += 1\n        \n        self.registered_strategies.add(strategy_name)\n        \n        logger.info(f"[{strategy_name}] ✅ Зарегистрировано {subscription_count} подписок\")\n        logger.info(f\"   Signals: {len(strategy_config.signals)}\")\n        logger.info(f\"   Trade pairs: {len(strategy_config.trade_pairs)}\")\n        \n        # Если менеджер уже запущен, активируем новые подписки\n        if self.is_running:\n            asyncio.create_task(self._activate_new_subscriptions(strategy_name))\n\n    def _add_subscription(\n        self, \n        strategy_name: str,\n        symbol: str, \n        frame: str,\n        callback: Callable,\n        source_type: str\n    ):\n        \"\"\"Добавление подписки в реестр\"\"\"\n        \n        key = (symbol, frame)\n        \n        subscription = SubscriptionRequest(\n            strategy_name=strategy_name,\n            symbol=symbol,\n            frame=frame,\n            callback=callback,\n            source_type=source_type\n        )\n        \n        if key not in self.subscriptions:\n            self.subscriptions[key] = []\n        \n        # Проверяем дублирование\n        existing = [s for s in self.subscriptions[key] if s.strategy_name == strategy_name]\n        if not existing:\n            self.subscriptions[key].append(subscription)\n            \n            logger.debug(\n                f\"   + {symbol} @ {frame} ({source_type}) -> [{strategy_name}]\"\n            )\n\n    async def start(self):\n        \"\"\"Запуск глобального менеджера данных\"\"\"\n        \n        if self.is_running:\n            logger.warning(\"GlobalMarketDataManager уже запущен\")\n            return\n        \n        logger.info(\"🚀 Запуск GlobalMarketDataManager...\")\n        \n        # Запускаем WebSocket подписки\n        await self._start_websocket_subscriptions()\n        \n        # Запускаем polling задачи\n        await self._start_polling_tasks()\n        \n        self.is_running = True\n        \n        total_subscriptions = len(self.subscriptions)\n        polling_count = len([s for subs in self.subscriptions.values() \n                           for s in subs if s.source_type == \"polling\"])\n        websocket_count = total_subscriptions - polling_count\n        \n        logger.info(\"\")\n        logger.info(\"🌍 ═══ GLOBAL MARKET DATA MANAGER ACTIVE ═══\")\n        logger.info(f\"   Registered strategies: {len(self.registered_strategies)}\")\n        logger.info(f\"   Total subscriptions: {total_subscriptions}\")\n        logger.info(f\"   📡 Polling: {polling_count}\")\n        logger.info(f\"   🔌 WebSocket: {websocket_count}\")\n        logger.info(f\"   Active WS subs: {len(self.active_ws_subscriptions)}\")\n        logger.info(f\"   Active polling tasks: {len(self.polling_tasks)}\")\n        logger.info(\"═\" * 70)\n        logger.info(\"\")\n\n    async def stop(self):\n        \"\"\"Остановка глобального менеджера\"\"\"\n        \n        logger.info(\"⏹ Остановка GlobalMarketDataManager...\")\n        \n        self.is_running = False\n        \n        # Останавливаем все polling задачи\n        await self._stop_polling_tasks()\n        \n        # Очищаем подписки\n        self.subscriptions.clear()\n        self.active_ws_subscriptions.clear()\n        self.registered_strategies.clear()\n        \n        logger.info(\"✅ GlobalMarketDataManager остановлен\")\n\n    def unregister_strategy(self, strategy_name: str):\n        \"\"\"Отмена регистрации стратегии\"\"\"\n        \n        if strategy_name not in self.registered_strategies:\n            return\n        \n        logger.info(f\"[{strategy_name}] 📤 Отмена регистрации...\")\n        \n        # Удаляем все подписки этой стратегии\n        keys_to_remove = []\n        \n        for key, subscription_list in self.subscriptions.items():\n            # Фильтруем подписки, оставляя только от других стратегий\n            self.subscriptions[key] = [\n                s for s in subscription_list if s.strategy_name != strategy_name\n            ]\n            \n            # Если подписок не осталось, помечаем ключ для удаления\n            if not self.subscriptions[key]:\n                keys_to_remove.append(key)\n        \n        # Удаляем пустые ключи\n        for key in keys_to_remove:\n            del self.subscriptions[key]\n            \n            # Если была WebSocket подписка, отписываемся\n            symbol, frame = key\n            if (symbol, frame) in self.active_ws_subscriptions:\n                # TODO: Реализовать отписку от WebSocket\n                self.active_ws_subscriptions.remove((symbol, frame))\n        \n        self.registered_strategies.remove(strategy_name)\n        \n        logger.info(f\"[{strategy_name}] ✅ Отмена регистрации завершена\")\n\n    # ========== WebSocket Management ==========\n    \n    async def _start_websocket_subscriptions(self):\n        \"\"\"Запуск WebSocket подписок для всех минутных интервалов\"\"\"\n        \n        # Собираем уникальные WebSocket подписки\n        ws_subscriptions: Set[Tuple[str, str]] = set()\n        \n        for key, subscription_list in self.subscriptions.items():\n            symbol, frame = key\n            \n            # Проверяем, что хотя бы одна подписка требует WebSocket\n            has_websocket = any(s.source_type == \"websocket\" for s in subscription_list)\n            \n            if has_websocket:\n                ws_subscriptions.add((symbol, frame))\n        \n        if not ws_subscriptions:\n            logger.info(\"Нет WebSocket подписок для активации\")\n            return\n        \n        logger.info(f\"Запуск {len(ws_subscriptions)} WebSocket подписок...\")\n        \n        for symbol, frame in ws_subscriptions:\n            try:\n                await self.ws_client.subscribe_kline(\n                    category=self.market_category,\n                    symbol=symbol,\n                    interval=frame,\n                    callback=self._ws_callback\n                )\n                \n                self.active_ws_subscriptions.add((symbol, frame))\n                logger.debug(f\"   ✓ WS: {symbol} @ {frame}\")\n                \n            except Exception as e:\n                logger.error(f\"Ошибка WS подписки {symbol}@{frame}: {e}\")\n        \n        logger.info(f\"✅ WebSocket: {len(self.active_ws_subscriptions)} активных подписок\")\n\n    async def _ws_callback(self, symbol: str, kline: Kline):\n        \"\"\"Единый callback для всех WebSocket данных\"\"\"\n        \n        if not kline.confirm:\n            return  # Игнорируем неподтвержденные данные\n        \n        # Находим все подписки для этой пары и транслируем данные\n        matching_subscriptions = []\n        \n        for key, subscription_list in self.subscriptions.items():\n            sub_symbol, sub_frame = key\n            \n            if sub_symbol == symbol:\n                # Проверяем соответствие frame (может быть разные для одного symbol)\n                for subscription in subscription_list:\n                    if (subscription.source_type == \"websocket\" and \n                        subscription.frame == sub_frame):\n                        matching_subscriptions.append(subscription)\n        \n        # Транслируем данные во все подходящие стратегии\n        for subscription in matching_subscriptions:\n            try:\n                await subscription.callback(symbol, kline)\n            except Exception as e:\n                logger.error(\n                    f\"Ошибка WS callback [{subscription.strategy_name}] {symbol}: {e}\"\n                )\n\n    # ========== Polling Management ==========\n    \n    async def _start_polling_tasks(self):\n        \"\"\"Запуск polling задач для секундных интервалов\"\"\"\n        \n        # Группируем polling подписки по интервалам\n        polling_groups: Dict[str, List[SubscriptionRequest]] = {}\n        \n        for subscription_list in self.subscriptions.values():\n            for subscription in subscription_list:\n                if subscription.source_type == \"polling\":\n                    frame = subscription.frame\n                    \n                    if frame not in polling_groups:\n                        polling_groups[frame] = []\n                    \n                    polling_groups[frame].append(subscription)\n        \n        if not polling_groups:\n            logger.info(\"Нет polling задач для запуска\")\n            return\n        \n        logger.info(f\"Запуск {len(polling_groups)} polling задач...\")\n        \n        self.polling_active = True\n        \n        # Создаем задачу для каждого уникального интервала\n        for frame, subscriptions in polling_groups.items():\n            interval_seconds = self._frame_to_seconds(frame)\n            \n            task_name = f\"polling_{frame}\"\n            task = asyncio.create_task(\n                self._polling_loop(frame, subscriptions, interval_seconds),\n                name=task_name\n            )\n            \n            self.polling_tasks[task_name] = task\n            \n            unique_symbols = set(s.symbol for s in subscriptions)\n            logger.info(\n                f\"   📡 {frame} ({interval_seconds}s): {len(unique_symbols)} пар, \"\n                f\"{len(subscriptions)} подписок\"\n            )\n        \n        logger.info(f\"✅ Polling: {len(self.polling_tasks)} задач активно\")\n\n    async def _stop_polling_tasks(self):\n        \"\"\"Остановка всех polling задач\"\"\"\n        \n        self.polling_active = False\n        \n        for task_name, task in self.polling_tasks.items():\n            if not task.done():\n                task.cancel()\n                try:\n                    await task\n                except asyncio.CancelledError:\n                    pass\n                    \n        self.polling_tasks.clear()\n        self.last_poll_times.clear()\n        \n        logger.info(\"✅ Все polling задачи остановлены\")\n\n    async def _polling_loop(\n        self, \n        frame: str, \n        subscriptions: List[SubscriptionRequest], \n        interval_seconds: int\n    ):\n        \"\"\"Основной цикл polling для конкретного интервала\"\"\"\n        \n        while self.polling_active:\n            try:\n                # Rate limiting\n                now = time.time()\n                last_poll = self.last_poll_times.get(frame, 0)\n                \n                if now - last_poll < interval_seconds:\n                    await asyncio.sleep(interval_seconds - (now - last_poll))\n                \n                # Получаем уникальные символы для этого интервала\n                unique_symbols = set(s.symbol for s in subscriptions)\n                \n                # Запрашиваем данные для всех символов\n                for symbol in unique_symbols:\n                    try:\n                        ticker = await self.rest_client.get_ticker(\n                            category=self.market_category,\n                            symbol=symbol\n                        )\n                        \n                        if ticker:\n                            # Конвертируем в Kline\n                            kline = self._ticker_to_kline(ticker)\n                            \n                            # Транслируем в соответствующие стратегии\n                            await self._distribute_polling_data(symbol, frame, kline, subscriptions)\n                            \n                    except Exception as e:\n                        logger.error(f\"Ошибка polling {symbol} @ {frame}: {e}\")\n                \n                self.last_poll_times[frame] = time.time()\n                \n            except asyncio.CancelledError:\n                break\n            except Exception as e:\n                logger.error(f\"Ошибка в polling цикле {frame}: {e}\")\n                await asyncio.sleep(5)\n\n    async def _distribute_polling_data(\n        self, \n        symbol: str, \n        frame: str, \n        kline: Kline, \n        subscriptions: List[SubscriptionRequest]\n    ):\n        \"\"\"Распределение polling данных по стратегиям\"\"\"\n        \n        # Находим все подписки для этого symbol+frame\n        matching_subscriptions = [\n            s for s in subscriptions \n            if s.symbol == symbol and s.frame == frame\n        ]\n        \n        # Транслируем данные во все подходящие стратегии\n        for subscription in matching_subscriptions:\n            try:\n                await subscription.callback(symbol, kline)\n            except Exception as e:\n                logger.error(\n                    f\"Ошибка polling callback [{subscription.strategy_name}] {symbol}: {e}\"\n                )\n\n    async def _activate_new_subscriptions(self, strategy_name: str):\n        \"\"\"Активация подписок для новой стратегии (если менеджер уже запущен)\"\"\"\n        \n        logger.info(f\"[{strategy_name}] 🔄 Активация подписок для новой стратегии...\")\n        \n        # Перезапускаем WebSocket подписки\n        await self._start_websocket_subscriptions()\n        \n        # Polling задачи перезапустятся автоматически при следующем цикле\n        logger.info(f\"[{strategy_name}] ✅ Подписки активированы\")\n\n    @staticmethod\n    def _ticker_to_kline(ticker_data: dict) -> Kline:\n        \"\"\"Конвертация ticker в Kline объект\"\"\"\n        \n        # Извлекаем данные из ответа API\n        if 'result' in ticker_data and 'list' in ticker_data['result']:\n            ticker = ticker_data['result']['list'][0]\n        else:\n            ticker = ticker_data\n            \n        last_price = float(ticker.get(\"lastPrice\", 0))\n        high_price = float(ticker.get(\"highPrice24h\", last_price))\n        low_price = float(ticker.get(\"lowPrice24h\", last_price))\n        volume = float(ticker.get(\"volume24h\", 0))\n\n        return Kline(\n            timestamp=int(time.time() * 1000),\n            open=last_price,  # Для polling используем последнюю цену\n            high=high_price,\n            low=low_price,\n            close=last_price,\n            volume=volume,\n            confirm=True  # Всегда подтвержденная для polling\n        )\n\n    @staticmethod\n    def _frame_to_seconds(frame: str) -> int:\n        \"\"\"Конвертация frame в секунды\"\"\"\n        if frame.endswith(\"s\"):\n            return int(frame[:-1])\n        if frame == \"D\":\n            return 86400\n        if frame == \"W\":\n            return 604800\n        if frame == \"M\":\n            return 2592000\n        return int(frame) * 60\n\n    def get_stats(self) -> dict:\n        \"\"\"Статистика менеджера\"\"\"\n        \n        polling_subs = sum(\n            len([s for s in subs if s.source_type == \"polling\"]) \n            for subs in self.subscriptions.values()\n        )\n        \n        websocket_subs = sum(\n            len([s for s in subs if s.source_type == \"websocket\"]) \n            for subs in self.subscriptions.values()\n        )\n        \n        return {\n            \"registered_strategies\": len(self.registered_strategies),\n            \"total_subscriptions\": len(self.subscriptions),\n            \"polling_subscriptions\": polling_subs,\n            \"websocket_subscriptions\": websocket_subs,\n            \"active_ws_subscriptions\": len(self.active_ws_subscriptions),\n            \"active_polling_tasks\": len(self.polling_tasks),\n            \"is_running\": self.is_running\n        }\n
+                source_type=source_type,
+            )
+            subscription_count += 1
+
+            # Регистрируем все target пары
+            for trade_pair in strategy_config.trade_pairs:
+                self._add_subscription(
+                    strategy_name=strategy_name,
+                    symbol=trade_pair,
+                    frame=signal_config.frame,
+                    callback=kline_callback,
+                    source_type=source_type,
+                )
+                subscription_count += 1
+
+        self.registered_strategies.add(strategy_name)
+
+        logger.info(f"[{strategy_name}] ✅ Зарегистрировано {subscription_count} подписок")
+        logger.info(f"   Signals: {len(strategy_config.signals)}")
+        logger.info(f"   Trade pairs: {len(strategy_config.trade_pairs)}")
+
+        # Если менеджер уже запущен, активируем новые подписки
+        if self.is_running:
+            asyncio.create_task(self._activate_new_subscriptions(strategy_name))
+
+    def _add_subscription(
+        self,
+        strategy_name: str,
+        symbol: str,
+        frame: str,
+        callback: Callable[[str, Kline], None],
+        source_type: str,
+    ) -> None:
+        """Добавление подписки в реестр."""
+
+        key = (symbol, frame)
+
+        subscription = SubscriptionRequest(
+            strategy_name=strategy_name,
+            symbol=symbol,
+            frame=frame,
+            callback=callback,
+            source_type=source_type,
+        )
+
+        if key not in self.subscriptions:
+            self.subscriptions[key] = []
+
+        # Проверяем дублирование по стратегии
+        if not any(s.strategy_name == strategy_name for s in self.subscriptions[key]):
+            self.subscriptions[key].append(subscription)
+            logger.debug(f"   + {symbol} @ {frame} ({source_type}) -> [{strategy_name}]")
+
+    async def start(self) -> None:
+        """Запуск глобального менеджера данных."""
+
+        if self.is_running:
+            logger.warning("GlobalMarketDataManager уже запущен")
+            return
+
+        logger.info("🚀 Запуск GlobalMarketDataManager...")
+
+        # Запускаем WebSocket подписки
+        await self._start_websocket_subscriptions()
+
+        # Запускаем polling задачи
+        await self._start_polling_tasks()
+
+        self.is_running = True
+
+        total_keys = len(self.subscriptions)
+        polling_count = sum(
+            1 for subs in self.subscriptions.values() for s in subs if s.source_type == "polling"
+        )
+        websocket_count = sum(
+            1 for subs in self.subscriptions.values() for s in subs if s.source_type == "websocket"
+        )
+
+        logger.info("")
+        logger.info("🌍 ═══ GLOBAL MARKET DATA MANAGER ACTIVE ═══")
+        logger.info(f"   Registered strategies: {len(self.registered_strategies)}")
+        logger.info(f"   Keys (symbol@frame): {total_keys}")
+        logger.info(f"   📡 Polling subs: {polling_count}")
+        logger.info(f"   🔌 WebSocket subs: {websocket_count}")
+        logger.info(f"   Active WS subs: {len(self.active_ws_subscriptions)}")
+        logger.info(f"   Active polling tasks: {len(self.polling_tasks)}")
+        logger.info("═" * 70)
+        logger.info("")
+
+    async def stop(self) -> None:
+        """Остановка глобального менеджера."""
+
+        logger.info("⏹ Остановка GlobalMarketDataManager...")
+
+        self.is_running = False
+
+        # Останавливаем все polling задачи
+        await self._stop_polling_tasks()
+
+        # Очистка
+        self.subscriptions.clear()
+        self.active_ws_subscriptions.clear()
+        self.registered_strategies.clear()
+
+        logger.info("✅ GlobalMarketDataManager остановлен")
+
+    def unregister_strategy(self, strategy_name: str) -> None:
+        """Отмена регистрации стратегии и очистка её подписок."""
+
+        if strategy_name not in self.registered_strategies:
+            return
+
+        logger.info(f"[{strategy_name}] 📤 Отмена регистрации...")
+
+        # Удаляем все подписки этой стратегии
+        keys_to_remove: List[Tuple[str, str]] = []
+
+        for key, subscription_list in list(self.subscriptions.items()):
+            self.subscriptions[key] = [s for s in subscription_list if s.strategy_name != strategy_name]
+            if not self.subscriptions[key]:
+                keys_to_remove.append(key)
+
+        # Удаляем пустые ключи и снимаем WS-подписки при необходимости
+        for key in keys_to_remove:
+            del self.subscriptions[key]
+            symbol, frame = key
+            if (symbol, frame) in self.active_ws_subscriptions:
+                # TODO: реализовать отписку от WebSocket на клиенте
+                self.active_ws_subscriptions.remove((symbol, frame))
+
+        self.registered_strategies.remove(strategy_name)
+        logger.info(f"[{strategy_name}] ✅ Отмена регистрации завершена")
+
+    # ========== WebSocket Management ==========
+
+    async def _start_websocket_subscriptions(self) -> None:
+        """Запуск WebSocket подписок для всех минутных интервалов."""
+
+        ws_subscriptions: Set[Tuple[str, str]] = set()
+
+        for (symbol, frame), subscription_list in self.subscriptions.items():
+            if any(s.source_type == "websocket" for s in subscription_list):
+                ws_subscriptions.add((symbol, frame))
+
+        if not ws_subscriptions:
+            logger.info("Нет WebSocket подписок для активации")
+            return
+
+        logger.info(f"Запуск {len(ws_subscriptions)} WebSocket подписок...")
+
+        for symbol, frame in ws_subscriptions:
+            try:
+                await self.ws_client.subscribe_kline(
+                    category=self.market_category,
+                    symbol=symbol,
+                    interval=frame,
+                    callback=self._ws_callback,
+                )
+                self.active_ws_subscriptions.add((symbol, frame))
+                logger.debug(f"   ✓ WS: {symbol} @ {frame}")
+            except Exception as e:
+                logger.error(f"Ошибка WS подписки {symbol}@{frame}: {e}")
+
+        logger.info(f"✅ WebSocket: {len(self.active_ws_subscriptions)} активных подписок")
+
+    async def _ws_callback(self, symbol: str, kline: Kline) -> None:
+        """Единый callback для всех WebSocket данных."""
+
+        if not kline.confirm:
+            return  # Игнорируем неподтвержденные данные
+
+        # Находим все подписки для этой пары и транслируем данные
+        for (sub_symbol, sub_frame), subscription_list in self.subscriptions.items():
+            if sub_symbol != symbol:
+                continue
+            for subscription in subscription_list:
+                if subscription.source_type == "websocket":
+                    try:
+                        await subscription.callback(symbol, kline)
+                    except Exception as e:
+                        logger.error(
+                            f"Ошибка WS callback [{subscription.strategy_name}] {symbol}: {e}"
+                        )
+
+    # ========== Polling Management ==========
+
+    async def _start_polling_tasks(self) -> None:
+        """Запуск polling задач для секундных интервалов."""
+
+        # Группируем polling подписки по интервалам
+        polling_groups: Dict[str, List[SubscriptionRequest]] = {}
+
+        for subscription_list in self.subscriptions.values():
+            for subscription in subscription_list:
+                if subscription.source_type == "polling":
+                    polling_groups.setdefault(subscription.frame, []).append(subscription)
+
+        if not polling_groups:
+            logger.info("Нет polling задач для запуска")
+            return
+
+        logger.info(f"Запуск {len(polling_groups)} polling задач...")
+
+        self.polling_active = True
+
+        # Создаем задачу для каждого уникального интервала
+        for frame, subscriptions in polling_groups.items():
+            interval_seconds = self._frame_to_seconds(frame)
+            task_name = f"polling_{frame}"
+            task = asyncio.create_task(
+                self._polling_loop(frame, subscriptions, interval_seconds),
+                name=task_name,
+            )
+            self.polling_tasks[task_name] = task
+            unique_symbols = {s.symbol for s in subscriptions}
+            logger.info(
+                f"   📡 {frame} ({interval_seconds}s): {len(unique_symbols)} пар, {len(subscriptions)} подписок"
+            )
+
+        logger.info(f"✅ Polling: {len(self.polling_tasks)} задач активно")
+
+    async def _stop_polling_tasks(self) -> None:
+        """Остановка всех polling задач."""
+
+        self.polling_active = False
+
+        for task_name, task in list(self.polling_tasks.items()):
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+        self.polling_tasks.clear()
+        self.last_poll_times.clear()
+
+        logger.info("✅ Все polling задачи остановлены")
+
+    async def _polling_loop(
+        self,
+        frame: str,
+        subscriptions: List[SubscriptionRequest],
+        interval_seconds: int,
+    ) -> None:
+        """Основной цикл polling для конкретного интервала."""
+
+        while self.polling_active:
+            try:
+                # Rate limiting
+                now = time.time()
+                last_poll = self.last_poll_times.get(frame, 0)
+                if now - last_poll < interval_seconds:
+                    await asyncio.sleep(max(0, interval_seconds - (now - last_poll)))
+
+                # Получаем уникальные символы для этого интервала
+                unique_symbols = {s.symbol for s in subscriptions}
+
+                # Запрашиваем данные для всех символов
+                for symbol in unique_symbols:
+                    try:
+                        ticker = await self.rest_client.get_ticker(
+                            category=self.market_category,
+                            symbol=symbol,
+                        )
+                        if ticker:
+                            # Конвертируем в Kline и транслируем
+                            kline = self._ticker_to_kline(ticker)
+                            await self._distribute_polling_data(
+                                symbol, frame, kline, subscriptions
+                            )
+                    except Exception as e:
+                        logger.error(f"Ошибка polling {symbol} @ {frame}: {e}")
+
+                self.last_poll_times[frame] = time.time()
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Ошибка в polling цикле {frame}: {e}")
+                await asyncio.sleep(5)
+
+    async def _distribute_polling_data(
+        self,
+        symbol: str,
+        frame: str,
+        kline: Kline,
+        subscriptions: List[SubscriptionRequest],
+    ) -> None:
+        """Распределение polling данных по стратегиям."""
+
+        for subscription in subscriptions:
+            if subscription.symbol == symbol and subscription.frame == frame:
+                try:
+                    await subscription.callback(symbol, kline)
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка polling callback [{subscription.strategy_name}] {symbol}: {e}"
+                    )
+
+    async def _activate_new_subscriptions(self, strategy_name: str) -> None:
+        """Активация подписок для новой стратегии (если менеджер уже запущен)."""
+
+        logger.info(f"[{strategy_name}] 🔄 Активация подписок для новой стратегии...")
+        await self._start_websocket_subscriptions()
+        logger.info(f"[{strategy_name}] ✅ Подписки активированы")
+
+    @staticmethod
+    def _ticker_to_kline(ticker_data: dict) -> Kline:
+        """Конвертация ticker в Kline объект."""
+
+        if "result" in ticker_data and "list" in ticker_data["result"]:
+            ticker = ticker_data["result"]["list"][0]
+        else:
+            ticker = ticker_data
+
+        last_price = float(ticker.get("lastPrice", 0))
+        high_price = float(ticker.get("highPrice24h", last_price))
+        low_price = float(ticker.get("lowPrice24h", last_price))
+        volume = float(ticker.get("volume24h", 0))
+
+        return Kline(
+            timestamp=int(time.time() * 1000),
+            open=last_price,
+            high=high_price,
+            low=low_price,
+            close=last_price,
+            volume=volume,
+            confirm=True,
+        )
+
+    @staticmethod
+    def _frame_to_seconds(frame: str) -> int:
+        """Конвертация frame в секунды."""
+        if frame.endswith("s"):
+            return int(frame[:-1])
+        if frame == "D":
+            return 86400
+        if frame == "W":
+            return 604800
+        if frame == "M":
+            return 2592000
+        return int(frame) * 60
+
+    def get_stats(self) -> dict:
+        """Статистика менеджера."""
+
+        polling_subs = sum(
+            len([s for s in subs if s.source_type == "polling"]) for subs in self.subscriptions.values()
+        )
+        websocket_subs = sum(
+            len([s for s in subs if s.source_type == "websocket"]) for subs in self.subscriptions.values()
+        )
+
+        return {
+            "registered_strategies": len(self.registered_strategies),
+            "total_keys": len(self.subscriptions),
+            "polling_subscriptions": polling_subs,
+            "websocket_subscriptions": websocket_subs,
+            "active_ws_subscriptions": len(self.active_ws_subscriptions),
+            "active_polling_tasks": len(self.polling_tasks),
+            "is_running": self.is_running,
+        }
