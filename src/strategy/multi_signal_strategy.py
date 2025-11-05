@@ -290,8 +290,8 @@ class MultiSignalStrategy:
                 category=self.config.get_pair_category(symbol),
                 symbol=symbol,
             )
-            if ticker and "result" in ticker and "list" in ticker["result"]:
-                return float(ticker["result"]["list"][0].get("lastPrice", 0))
+            if ticker and isinstance(ticker, dict):
+                return float(ticker.get("lastPrice", 0))
             return 0.0
         except Exception as e:
             logger.error(f"Error getting current price for {symbol}: {e}")
