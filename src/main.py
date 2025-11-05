@@ -19,8 +19,18 @@ from src.trading.position_manager import PositionManager
 
 class TradingBot:
     def __init__(self, config_path: str = "config/config.json") -> None:
+        # Загружаем конфигурацию раньше, чтобы сконфигурировать логгер
         self.config = Config.load(config_path)
-        setup_logger(level=self.config.logging_level)
+
+        # Конфигурируем логгер из конфигурации
+        # Дополнительно уважаем переменные окружения, если заданы
+        setup_logger(
+            name=getattr(self.config, "log_name", None),
+            level=self.config.logging_level,
+            log_dir=getattr(self.config, "log_dir", None),
+            log_file=getattr(self.config, "log_file", None),
+            err_file=getattr(self.config, "log_error_file", None),
+        )
 
         self.client = BybitClient(
             api_key=self.config.api_key,
@@ -205,7 +215,9 @@ class TradingBot:
         logger.info("  Strategies:")
         for name, strategy in self.strategies.items():
             status = strategy.get_status()
-            logger.info(f"    [{name}] Signals: {status['signals_count']}, Generated: {status['signals_generated']}")
+            logger.info(
+                f"    [{name}] Signals: {status['signals_count']}, Generated: {status['signals_generated']}"
+            )
         client_stats = self.client.get_stats()
         logger.info("")
         logger.info("  API Stats:")
