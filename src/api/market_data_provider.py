@@ -5,10 +5,11 @@
 - WebSocket для интервалов ≥ 1 минута  
 - REST API polling для интервалов < 1 минута
 """
+from __future__ import annotations
 
 import asyncio
 import time
-from typing import Callable, Dict, Set
+from typing import Callable
 
 from ..logger import logger
 from ..config import StrategyConfig, SignalConfig
@@ -37,20 +38,20 @@ class MultiMarketDataProvider:
         self.ws_client = ws_client
         
         # Колбэк для передачи данных в стратегию
-        self.kline_callback: Callable[[str, Kline], None] = None
+        self.kline_callback: Callable[[str, Kline], None] | None = None
         
         # Разделяем сигналы по типу получения данных
-        self.polling_signals: Dict[str, SignalConfig] = {}
-        self.websocket_signals: Dict[str, SignalConfig] = {}
+        self.polling_signals: dict[str, SignalConfig] = {}
+        self.websocket_signals: dict[str, SignalConfig] = {}
         
         self._analyze_signals()
         
         # Для polling режима
-        self.polling_tasks: Dict[str, asyncio.Task] = {}
+        self.polling_tasks: dict[str, asyncio.Task] = {}
         self.polling_active = False
         
         # Кеш последних данных для каждой пары
-        self.last_poll_times: Dict[str, float] = {}
+        self.last_poll_times: dict[str, float] = {}
         
         logger.info(f"[{strategy_config.name}] MultiMarketDataProvider инициализирован")
         logger.info(f"   Polling сигналы: {len(self.polling_signals)}")
@@ -110,7 +111,7 @@ class MultiMarketDataProvider:
         logger.info(f"[{self.strategy_config.name}] Запуск WebSocket подписок...")
         
         # Собираем уникальные комбинации symbol+interval
-        subscriptions: Set[tuple] = set()
+        subscriptions: set[tuple] = set()
         
         for signal_config in self.websocket_signals.values():
             # Index пара
@@ -123,7 +124,7 @@ class MultiMarketDataProvider:
         # Выполняем подписки
         for symbol, interval in subscriptions:
             try:
-                await self.ws_client.subscribe_kline(
+                self.ws_client.subscribe_kline(
                     category=self.strategy_config.get_market_category(),
                     symbol=symbol,
                     interval=interval,
@@ -155,7 +156,7 @@ class MultiMarketDataProvider:
         self.polling_active = True
         
         # Группируем сигналы по интервалу для оптимизации
-        interval_groups: Dict[str, List[SignalConfig]] = {}
+        interval_groups: dict[str, list[SignalConfig]] = {}
         for signal_config in self.polling_signals.values():
             if signal_config.frame not in interval_groups:
                 interval_groups[signal_config.frame] = []
@@ -169,7 +170,8 @@ class MultiMarketDataProvider:
             task = asyncio.create_task(
                 self._polling_loop(frame, signal_configs, interval_seconds),
                 name=task_name
-            )\n            self.polling_tasks[task_name] = task
+            )
+            self.polling_tasks[task_name] = task
             
             logger.info(f"   📡 Polling {frame} ({interval_seconds}s): {len(signal_configs)} сигналов")
         
@@ -194,7 +196,7 @@ class MultiMarketDataProvider:
     async def _polling_loop(
         self, 
         frame: str, 
-        signal_configs: List[SignalConfig], 
+        signal_configs: list[SignalConfig],
         interval_seconds: int
     ):
         """Основной цикл polling для конкретного интервала"""
@@ -219,11 +221,11 @@ class MultiMarketDataProvider:
                 logger.error(f"[{self.strategy_config.name}] Polling ошибка {frame}: {e}")
                 await asyncio.sleep(5)
 
-    async def _poll_frame_data(self, frame: str, signal_configs: List[SignalConfig]):
+    async def _poll_frame_data(self, frame: str, signal_configs: list[SignalConfig]):
         """Получение данных через REST для конкретного frame"""
         
         # Собираем уникальные пары для этого frame
-        unique_symbols: Set[str] = set()
+        unique_symbols: set[str] = set()
         
         for signal_config in signal_configs:
             unique_symbols.add(signal_config.index)
@@ -355,7 +357,7 @@ class MarketDataProvider:
         logger.info(f"[{self.config.name}] Starting WebSocket subscriptions...")
 
         # Подписка на доминирующую пару
-        await self.ws_client.subscribe_kline(
+        self.ws_client.subscribe_kline(
             category=self.config.get_market_category(),
             symbol=self.config.dominant_pair,
             interval=self.config.timeframe,
@@ -363,7 +365,7 @@ class MarketDataProvider:
         )
 
         # Подписка на целевую пару
-        await self.ws_client.subscribe_kline(
+        self.ws_client.subscribe_kline(
             category=self.config.get_market_category(),
             symbol=self.config.target_pair,
             interval=self.config.timeframe,

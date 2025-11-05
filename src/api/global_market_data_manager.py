@@ -10,7 +10,7 @@
 
 import asyncio
 import time
-from typing import Dict, Set, List, Callable, Tuple
+from typing import Callable
 from dataclasses import dataclass
 
 from ..logger import logger
@@ -52,18 +52,18 @@ class GlobalMarketDataManager:
         self.market_category = market_category
 
         # Активные подписки от стратегий: {(symbol, frame): [SubscriptionRequest, ...]}
-        self.subscriptions: Dict[Tuple[str, str], List[SubscriptionRequest]] = {}
+        self.subscriptions: dict[tuple[str, str], list[SubscriptionRequest]] = {}
 
         # Активные WebSocket подписки {(symbol, frame)}
-        self.active_ws_subscriptions: Set[Tuple[str, str]] = set()
+        self.active_ws_subscriptions: set[tuple[str, str]] = set()
 
         # Активные polling задачи (группированные по интервалу)
-        self.polling_tasks: Dict[str, asyncio.Task] = {}
+        self.polling_tasks: dict[str, asyncio.Task] = {}
         self.polling_active = False
-        self.last_poll_times: Dict[str, float] = {}
+        self.last_poll_times: dict[str, float] = {}
 
         # Зарегистрированные стратегии
-        self.registered_strategies: Set[str] = set()
+        self.registered_strategies: set[str] = set()
 
         self.is_running = False
 
@@ -210,7 +210,7 @@ class GlobalMarketDataManager:
         logger.info(f"[{strategy_name}] 📤 Отмена регистрации...")
 
         # Удаляем все подписки этой стратегии
-        keys_to_remove: List[Tuple[str, str]] = []
+        keys_to_remove: list[tuple[str, str]] = []
 
         for key, subscription_list in list(self.subscriptions.items()):
             self.subscriptions[key] = [s for s in subscription_list if s.strategy_name != strategy_name]
@@ -233,7 +233,7 @@ class GlobalMarketDataManager:
     async def _start_websocket_subscriptions(self) -> None:
         """Запуск WebSocket подписок для всех минутных интервалов."""
 
-        ws_subscriptions: Set[Tuple[str, str]] = set()
+        ws_subscriptions: set[tuple[str, str]] = set()
 
         for (symbol, frame), subscription_list in self.subscriptions.items():
             if any(s.source_type == "websocket" for s in subscription_list):
@@ -247,7 +247,7 @@ class GlobalMarketDataManager:
 
         for symbol, frame in ws_subscriptions:
             try:
-                await self.ws_client.subscribe_kline(
+                self.ws_client.subscribe_kline(
                     category=self.market_category,
                     symbol=symbol,
                     interval=frame,
@@ -285,7 +285,7 @@ class GlobalMarketDataManager:
         """Запуск polling задач для секундных интервалов."""
 
         # Группируем polling подписки по интервалам
-        polling_groups: Dict[str, List[SubscriptionRequest]] = {}
+        polling_groups: dict[str, list[SubscriptionRequest]] = {}
 
         for subscription_list in self.subscriptions.values():
             for subscription in subscription_list:
@@ -336,7 +336,7 @@ class GlobalMarketDataManager:
     async def _polling_loop(
         self,
         frame: str,
-        subscriptions: List[SubscriptionRequest],
+        subscriptions: list[SubscriptionRequest],
         interval_seconds: int,
     ) -> None:
         """Основной цикл polling для конкретного интервала."""
@@ -381,7 +381,7 @@ class GlobalMarketDataManager:
         symbol: str,
         frame: str,
         kline: Kline,
-        subscriptions: List[SubscriptionRequest],
+        subscriptions: list[SubscriptionRequest],
     ) -> None:
         """Распределение polling данных по стратегиям."""
 
