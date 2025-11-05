@@ -62,6 +62,13 @@ class StrategyConfig:
     def get_market_category(self) -> str:
         return "spot" if self.is_spot() else "linear"
 
+    def get_pair_category(self, symbol: str) -> str:
+        """Категория рынка для конкретной пары.
+        По умолчанию возвращает категорию всей стратегии (fallback).
+        Переопределите в конфиге при необходимости per-symbol логики.
+        """
+        return self.get_market_category()
+
     def should_take_signal(self, signal_action: str) -> bool:
         if self.direction == 0:
             return True
@@ -275,8 +282,8 @@ class Config:
         if not api_key or not api_secret:
             raise ValueError("api_key или api_secret не найдены в конфигурации или в окружении")
 
-        testnet = str(os.getenv("BYBIT_TESTNET", data.get("api", {}).get("testnet", ""))).lower() == "true"
-        demo_mode = str(os.getenv("BYBIT_DEMO_MODE", data.get("api", {}).get("demo_mode", ""))).lower() == "true"
+        testnet = str(os.getenv("BYBIT_TESTNET", data.get("api", {}).get("testnet", "")).lower()) == "true"
+        demo_mode = str(os.getenv("BYBIT_DEMO_MODE", data.get("api", {}).get("demo_mode", "")).lower()) == "true"
 
         # Загрузка pairs (старый формат)
         pairs = []
