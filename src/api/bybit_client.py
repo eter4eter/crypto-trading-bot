@@ -5,7 +5,7 @@ import functools
 import time
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypeVar, ParamSpec, Coroutine, Callable, Literal
+from typing import Any, TypeVar, ParamSpec, Coroutine, Callable, Literal, Optional, Dict
 
 from pybit.unified_trading import HTTP
 
@@ -27,10 +27,6 @@ def async_wrap(func: Callable[P, R]) -> Callable[P, Coroutine[Any, Any, R]]:
         loop = asyncio.get_running_loop()
         partial_func = functools.partial(func, *args, **kwargs)
         return await loop.run_in_executor(self._executor, partial_func)
-        # return await loop.run_in_executor(
-        #     self._executor,
-        #     lambda: func(*args, **kwargs)
-        # )
 
     return wrapper
 
@@ -51,6 +47,11 @@ class BybitClient(metaclass=Singleton):
         self.request_count = 0
         self.error_count = 0
         self.last_request_time = 0
+
+        # cache for instruments info
+        self._instrument_cache: Dict[str, Dict[str, Any]] = {}
+        self._instrument_cache_ts: Dict[str, float] = {}
+        self._instrument_ttl_sec: int = 300
 
         logger.info(f"BybitClient initialized. Testnet: {testnet}")
 
@@ -74,16 +75,6 @@ class BybitClient(metaclass=Singleton):
     ) -> list[Kline]:
         """
         Получение исторических свечей (klines)
-
-        Args:
-            category: Product type. spot,linear,inverse
-                    When category is not passed, use linear by default
-            symbol: Symbol name, like BTCUSDT, uppercase only
-            interval: Timeframe (1,3,5,15,30,60,120,240,360,720,D,W,M)
-            limit: Количество свечей (макс 200)
-
-        Returns:
-            List кортежей (timestamp, open, high, low, close, volume)
         """
         self._init_session()
 
@@ -97,9 +88,6 @@ class BybitClient(metaclass=Singleton):
 
             if response['retCode'] == 0:
                 klines = response["result"]["list"]
-
-                # Формат: [timestamp, open, high, low, close, volume, turnover]
-                # Преобразуем в удобный формат
                 result = []
                 for kline in klines:
                     result.append(Kline(
@@ -111,10 +99,7 @@ class BybitClient(metaclass=Singleton):
                         volume=float(kline[5]),
                         confirm=False,
                     ))
-
-                # Bybit возвращает в обратном порядке, разворачиваем
                 result.reverse()
-
                 logger.info(f"Loaded {len(result)} klines for {symbol} ({interval})")
                 return result
 
@@ -125,30 +110,9 @@ class BybitClient(metaclass=Singleton):
             logger.error(f"Exception getting klines: {e}")
             return []
 
-    # @retry(max_attempts=3, delay=1)
     @async_wrap
     def get_ticker(self, category: str, symbol: str) -> dict[str, Any] | None:
-        """
-        Получение текущего тикера (для sub-minute polling)
-
-        Args:
-            category: "spot" или "linear"
-            symbol: Символ пары (e.g., "BTCUSDT")
-
-        Returns:
-            dict: Информация о тикере или None при ошибке
-            {
-                "symbol": "BTCUSDT",
-                "lastPrice": "50000.00",
-                "highPrice24h": "51000.00",
-                "lowPrice24h": "49000.00",
-                "volume24h": "12345.67",
-                "turnover24h": "616728405.23",
-                "bid1Price": "49999.99",
-                "ask1Price": "50000.01",
-                ...
-            }
-        """
+        """Получение текущего тикера (для sub-minute polling)"""
         self._init_session()
 
         try:
@@ -184,7 +148,6 @@ class BybitClient(metaclass=Singleton):
             logger.error(f"Exception getting ticker for {symbol}: {e}", exc_info=True)
             return None
 
-    # @retry(max_attempts=3, delay=2)
     @async_wrap
     def set_leverage(self, category: str, symbol: str, leverage: int) -> bool:
         """Установка плеча с retry"""
@@ -208,8 +171,6 @@ class BybitClient(metaclass=Singleton):
                 return True
 
             elif ret_code == 110043:
-                # 1. Плечо уже установлено (OK)
-                # 2. Spot пара (ожидаемо)
                 logger.debug(f"Leverage already set or not applicable for {symbol}")
                 return True
 
@@ -225,7 +186,6 @@ class BybitClient(metaclass=Singleton):
             logger.error(f"Exception setting leverage for {symbol}: {e}")
             return False
 
-    # @retry(max_attempts=3, delay=2)
     @async_wrap
     def place_market_order(
             self,
@@ -286,7 +246,6 @@ class BybitClient(metaclass=Singleton):
             logger.error(f"Exception placing order for {symbol}: {e}")
             return None
 
-    # @retry(max_attempts=3, delay=1)
     @async_wrap
     def get_position(self, category: str, symbol: str) -> dict[str, Any] | None:
         """Получение позиции"""
@@ -312,7 +271,6 @@ class BybitClient(metaclass=Singleton):
             logger.error(f"Exception getting position {symbol}: {e}")
             return None
 
-    # @retry(max_attempts=3, delay=1)
     @async_wrap
     def get_order_history(
             self,
@@ -346,7 +304,6 @@ class BybitClient(metaclass=Singleton):
             logger.error(f"Exception getting order history: {e}")
             return []
 
-    # @retry(max_attempts=3, delay=1)
     @async_wrap
     def get_wallet_balance(self, account_type: str = "UNIFIED") -> dict[str, Any] | None:
         """Получение баланса кошелька"""
@@ -366,6 +323,123 @@ class BybitClient(metaclass=Singleton):
             self.error_count += 1
             logger.error(f"Exception getting wallet balance: {e}")
             return None
+
+    # ====== Instruments info / normalization ======
+
+    @async_wrap
+    def get_instruments_info(self, category: str, symbol: str) -> Optional[Dict[str, Any]]:
+        """Обертка над v5/market/instruments-info. Возвращает спецификацию символа.
+        Возвращает dict: qtyStep, minOrderQty, tickSize, minNotional (если доступно).
+        Кэшируется на _instrument_ttl_sec.
+        """
+        self._init_session()
+        import time as _t
+
+        cache_key = f"{category}:{symbol}"
+        now = _t.time()
+        if cache_key in self._instrument_cache and now - self._instrument_cache_ts.get(cache_key, 0) < self._instrument_ttl_sec:
+            return self._instrument_cache[cache_key]
+
+        try:
+            self.request_count += 1
+            resp = self.session.get_instruments_info(category=category, symbol=symbol)
+            if resp.get("retCode") == 0:
+                items = resp.get("result", {}).get("list", [])
+                if items:
+                    it = items[0]
+                    lot = it.get("lotSizeFilter", {})
+                    price = it.get("priceFilter", {})
+                    spec = {
+                        "qtyStep": float(lot.get("qtyStep", 0) or 0),
+                        "minOrderQty": float(lot.get("minOrderQty", 0) or 0),
+                        "tickSize": float(price.get("tickSize", 0) or 0),
+                        # minNotional может отсутствовать; на тестнете часто используется порог 5 USDT
+                        "minNotional": float(lot.get("minNotional", 0) or 5.0),
+                    }
+                    self._instrument_cache[cache_key] = spec
+                    self._instrument_cache_ts[cache_key] = now
+                    return spec
+            logger.error(f"Get instruments info error for {symbol}: {resp.get('retMsg')}")
+            return None
+        except Exception as e:
+            self.error_count += 1
+            logger.error(f"Exception get_instruments_info for {symbol}: {e}")
+            return None
+
+    @staticmethod
+    def _decimal_places(step: float) -> int:
+        s = f"{step:.12f}".rstrip("0").rstrip(".")
+        if "." in s:
+            return len(s.split(".")[1])
+        return 0
+
+    @staticmethod
+    def _floor_to_step(value: float, step: float) -> float:
+        if step <= 0:
+            return value
+        import math
+        return math.floor(value / step) * step
+
+    @staticmethod
+    def _ceil_to_step(value: float, step: float) -> float:
+        if step <= 0:
+            return value
+        import math
+        return math.ceil(value / step) * step
+
+    async def normalize_order(
+        self,
+        *,
+        category: str,
+        symbol: str,
+        side: str,
+        last_price: float,
+        position_size_usdt: float,
+        take_profit: float,
+        stop_loss: float,
+    ) -> Optional[Dict[str, Any]]:
+        """Рассчитывает qty по правилам инструмента, нормализует qty и цены по шагам.
+        Возвращает словарь с полями qty_str, tp_str, sl_str, qty, tp, sl или None при ошибке.
+        """
+        spec = await self.get_instruments_info(category, symbol)
+        if spec is None:
+            spec = {"qtyStep": 1.0, "minOrderQty": 1.0, "tickSize": 0.0001, "minNotional": 5.0}
+
+        qty_step = float(spec.get("qtyStep", 1.0) or 1.0)
+        min_qty = float(spec.get("minOrderQty", qty_step) or qty_step)
+        tick = float(spec.get("tickSize", 0.0001) or 0.0001)
+        min_notional = float(spec.get("minNotional", 5.0) or 5.0)
+
+        raw_qty = position_size_usdt / max(last_price, 1e-12)
+        qty = self._floor_to_step(raw_qty, qty_step)
+        if qty < min_qty:
+            qty = min_qty
+        if qty * last_price < min_notional:
+            qty = self._ceil_to_step(min_notional / max(last_price, 1e-12), qty_step)
+        if qty <= 0:
+            logger.error(f"Normalized qty is zero for {symbol} (raw={raw_qty}, step={qty_step})")
+            return None
+
+        # Нормализация TP/SL по tickSize с учётом стороны
+        if side.lower() == "buy":
+            tp = self._floor_to_step(take_profit, tick)
+            sl = self._ceil_to_step(stop_loss, tick)
+        else:
+            tp = self._ceil_to_step(take_profit, tick)
+            sl = self._floor_to_step(stop_loss, tick)
+
+        qty_dp = self._decimal_places(qty_step)
+        price_dp = self._decimal_places(tick)
+
+        return {
+            "qty": qty,
+            "qty_str": f"{qty:.{qty_dp}f}",
+            "tp": tp,
+            "sl": sl,
+            "tp_str": f"{tp:.{price_dp}f}",
+            "sl_str": f"{sl:.{price_dp}f}",
+            "steps": {"qty_step": qty_step, "tick": tick, "min_qty": min_qty, "min_notional": min_notional},
+        }
 
     async def close(self):
         """Закрытие соединений"""
