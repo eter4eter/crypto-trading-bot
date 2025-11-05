@@ -1,9 +1,4 @@
-"""
-Мультисигнальная стратегия с унифицированным провайдером данных (через GlobalMarketDataManager)
-
-Стратегия больше не инициализирует локальные подписки/источники данных.
-Получает kline через глобальный менеджер и обрабатывает их по логике ТЗ.
-"""
+from __future__ import annotations
 
 import asyncio
 from collections import deque
@@ -11,16 +6,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable, Literal
 
-from ..config import StrategyConfig, SignalConfig
 from ..api.bybit_client import BybitClient
 from ..api.bybit_websocket_client import BybitWebSocketClient
 from ..api.common import Kline
+from ..config import SignalConfig, StrategyConfig
 from ..logger import logger
 
 
 @dataclass
 class SignalResult:
-    """Результат обработки сигнала"""
     signal_name: str
     strategy_name: str
     action: Literal["Buy", "Sell", "None"]
@@ -31,56 +25,49 @@ class SignalResult:
     target_change: float
     triggered: bool = False
     slippage_ok: bool = True
-    timestamp: datetime = None
+    timestamp: datetime | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.timestamp is None:
             self.timestamp = datetime.now()
 
 
 class MultiSignalStrategy:
-    """
-    Мультисигнальная стратегия. Источник маркет-данных — GlobalMarketDataManager.
-    """
-    
+    """Стратегия без локальных источников. Данные приходят из GlobalMarketDataManager."""
+
     def __init__(
         self,
         config: StrategyConfig,
         rest_client: BybitClient,
-        ws_client: BybitWebSocketClient
-    ):
+        ws_client: BybitWebSocketClient,
+    ) -> None:
         self.config = config
         self.rest_client = rest_client
         self.ws_client = ws_client
-        
-        # Буферы для каждого сигнала
-        self.signal_buffers: dict[str, dict[str, deque]] = {}
-        self.signal_callbacks: dict[str, Callable] = {}
+
+        self.signal_buffers: dict[str, dict[str, deque[float]]] = {}
+        self.signal_callbacks: dict[str, Callable[[SignalResult], None]] = {}
         self.signal_locks: dict[str, asyncio.Lock] = {}
-        self.strategy_callback: Callable | None = None
-        
+        self.strategy_callback: Callable[[SignalResult], None] | None = None
+
         self._initialize_buffers()
-        
         self.signals_generated = 0
         self.history_loaded = False
-        
-        logger.info(f"✅ MultiSignalStrategy [{config.name}] готова (источник: GlobalMarketDataManager)")
-        logger.info(f"   Торговые пары: {config.trade_pairs}")
-        logger.info(f"   Количество сигналов: {len(config.signals)}")
 
-    def _initialize_buffers(self):
+        logger.info(
+            f"✅ MultiSignalStrategy [{config.name}] готова (источник: GlobalMarketDataManager)"
+        )
+
+    def _initialize_buffers(self) -> None:
         for signal_name, signal_config in self.config.signals.items():
             window_size = signal_config.tick_window if signal_config.tick_window > 0 else 2
             self.signal_buffers[signal_name] = {
                 "index_prices": deque(maxlen=window_size),
-                "target_prices": {}
+                "target_prices": {pair: deque(maxlen=window_size) for pair in self.config.trade_pairs},
             }
-            for trade_pair in self.config.trade_pairs:
-                self.signal_buffers[signal_name]["target_prices"][trade_pair] = deque(maxlen=window_size)
             self.signal_locks[signal_name] = asyncio.Lock()
 
-    async def preload_history(self):
-        """Предзагрузка истории через REST-клиент (без подписок)"""
+    async def preload_history(self) -> bool:
         logger.info(f"[{self.config.name}] 📅 Загрузка исторических данных...")
         for signal_name, signal_config in self.config.signals.items():
             try:
@@ -89,18 +76,20 @@ class MultiSignalStrategy:
                     category=self.config.get_market_category(),
                     symbol=signal_config.index,
                     interval=signal_config.frame,
-                    limit=limit
+                    limit=limit,
                 )
                 if not index_klines:
-                    logger.error(f"[{self.config.name}] Не удалось загрузить index {signal_config.index} @ {signal_config.frame}")
+                    logger.error(
+                        f"[{self.config.name}] Не удалось загрузить index {signal_config.index} @ {signal_config.frame}"
+                    )
                     continue
-                target_klines_data = {}
+                target_klines_data: dict[str, list[Kline]] = {}
                 for trade_pair in self.config.trade_pairs:
                     kl = await self.rest_client.get_klines(
                         category=self.config.get_market_category(),
                         symbol=trade_pair,
                         interval=signal_config.frame,
-                        limit=limit
+                        limit=limit,
                     )
                     if kl:
                         target_klines_data[trade_pair] = kl
@@ -127,35 +116,32 @@ class MultiSignalStrategy:
         self.history_loaded = True
         return True
 
-    # Метод start/stop больше не управляют источником данных (делает GlobalMarketDataManager)
-    async def start(self):
+    async def start(self) -> None:
         logger.info(f"[{self.config.name}] ✅ Strategy is listening (via GlobalMarketDataManager)")
 
-    async def stop(self):
+    async def stop(self) -> None:
         logger.info(f"[{self.config.name}] ⏹ Strategy stopped (buffers will be cleared)")
         for signal_name in list(self.signal_buffers.keys()):
             async with self.signal_locks[signal_name]:
                 buf = self.signal_buffers[signal_name]
                 buf["index_prices"].clear()
-                for _, dq in buf["target_prices"].items():
+                for dq in buf["target_prices"].values():
                     dq.clear()
 
-    async def _on_kline_data(self, symbol: str, kline: Kline):
-        """Единая точка входа kline от GlobalMarketDataManager"""
+    async def _on_kline_data(self, symbol: str, kline: Kline) -> None:
         for signal_name, signal_config in self.config.signals.items():
             try:
                 async with self.signal_locks[signal_name]:
                     buf = self.signal_buffers[signal_name]
                     if symbol == signal_config.index:
                         buf["index_prices"].append(kline.close)
-                    elif symbol in self.config.trade_pairs:
-                        if symbol in buf["target_prices"]:
-                            buf["target_prices"][symbol].append(kline.close)
+                    elif symbol in self.config.trade_pairs and symbol in buf["target_prices"]:
+                        buf["target_prices"][symbol].append(kline.close)
                 await self._check_signal(signal_name, signal_config)
             except Exception as e:
                 logger.error(f"[{self.config.name}] Ошибка обработки kline {symbol} для {signal_name}: {e}")
 
-    async def _check_signal(self, signal_name: str, signal_config: SignalConfig):
+    async def _check_signal(self, signal_name: str, signal_config: SignalConfig) -> None:
         buf = self.signal_buffers[signal_name]
         required = signal_config.tick_window if signal_config.tick_window > 0 else 2
         if len(buf["index_prices"]) < required:
@@ -185,10 +171,10 @@ class MultiSignalStrategy:
             same_dir = (index_change > 0 and target_change > 0) or (index_change < 0 and target_change < 0)
             if not same_dir:
                 continue
-            raw_action = "Buy" if index_change > 0 else "Sell"
-            action = "Sell" if (signal_config.reverse == 1 and raw_action == "Buy") else ("Buy" if signal_config.reverse == 1 else raw_action)
-            if signal_config.reverse == 0:
-                action = raw_action
+            raw_action: Literal["Buy", "Sell"] = "Buy" if index_change > 0 else "Sell"
+            action: Literal["Buy", "Sell"] = raw_action if signal_config.reverse == 0 else (
+                "Sell" if raw_action == "Buy" else "Buy"
+            )
             if not self.config.should_take_signal(action):
                 continue
             current_price = await self._get_current_price(pair)
@@ -204,7 +190,7 @@ class MultiSignalStrategy:
                 index_change=index_change,
                 target_change=target_change,
                 triggered=True,
-                slippage_ok=slippage_ok
+                slippage_ok=slippage_ok,
             )
             self.signals_generated += 1
             logger.info("")
@@ -223,33 +209,33 @@ class MultiSignalStrategy:
         try:
             ticker = await self.rest_client.get_ticker(
                 category=self.config.get_market_category(),
-                symbol=symbol
+                symbol=symbol,
             )
-            if ticker and 'result' in ticker and 'list' in ticker['result']:
-                return float(ticker['result']['list'][0].get('lastPrice', 0))
+            if ticker and "result" in ticker and "list" in ticker["result"]:
+                return float(ticker["result"]["list"][0].get("lastPrice", 0))
             return 0.0
         except Exception as e:
             logger.error(f"Error getting current price for {symbol}: {e}")
             return 0.0
 
-    def set_signal_callback(self, signal_name: str, callback: Callable):
+    def set_signal_callback(self, signal_name: str, callback: Callable[[SignalResult], None]) -> None:
         self.signal_callbacks[signal_name] = callback
 
-    def set_strategy_callback(self, callback: Callable):
+    def set_strategy_callback(self, callback: Callable[[SignalResult], None]) -> None:
         self.strategy_callback = callback
 
-    async def reset_buffers(self):
+    async def reset_buffers(self) -> None:
         for signal_name in self.signal_buffers.keys():
             async with self.signal_locks[signal_name]:
                 buf = self.signal_buffers[signal_name]
                 buf["index_prices"].clear()
-                for _, dq in buf["target_prices"].items():
+                for dq in buf["target_prices"].values():
                     dq.clear()
         self.history_loaded = False
         logger.info(f"[{self.config.name}] 🔄 Буферы сброшены")
         await self.preload_history()
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, object]:
         return {
             "name": self.config.name,
             "signals_count": len(self.config.signals),
@@ -260,8 +246,8 @@ class MultiSignalStrategy:
             "buffers_status": {
                 sname: {
                     "index_buffer": len(buf["index_prices"]),
-                    "target_buffers": {pair: len(dq) for pair, dq in buf["target_prices"].items()}
+                    "target_buffers": {pair: len(dq) for pair, dq in buf["target_prices"].items()},
                 }
                 for sname, buf in self.signal_buffers.items()
-            }
+            },
         }
