@@ -182,32 +182,52 @@ class PositionManager:
             )
             return False
         target_pair = sig_result.target_pairs[0] if sig_result.target_pairs else strategy_config.trade_pairs[0]
-        quantity = position_size_usdt / sig_result.target_price
-        qty_str = f"{quantity:.4f}"
         side = "Buy" if sig_result.action == "Buy" else "Sell"
+
+        # Рассчитываем TP/SL до нормализации
         if sig_result.action == "Buy":
             take_profit = sig_result.target_price * (1 + strategy_config.stop_take_percent)
             stop_loss = sig_result.target_price * (1 - strategy_config.stop_take_percent)
         else:
             take_profit = sig_result.target_price * (1 - strategy_config.stop_take_percent)
             stop_loss = sig_result.target_price * (1 + strategy_config.stop_take_percent)
+
+        # Нормализация qty и цен по спецификации символа
+        norm = await self.client.normalize_order(
+            category=strategy_config.get_market_category(),
+            symbol=target_pair,
+            side=side,
+            last_price=sig_result.target_price,
+            position_size_usdt=position_size_usdt,
+            take_profit=take_profit,
+            stop_loss=stop_loss,
+        )
+        if norm is None:
+            logger.error(f"✗ [{sig_result.strategy_name}] Normalize order failed for {target_pair}")
+            return False
+
+        qty_str = norm["qty_str"]
+        take_profit_str = norm["tp_str"]
+        stop_loss_str = norm["sl_str"]
+
         logger.info("")
         logger.info(f"📊 ═══ Opening Multi Position [{sig_result.strategy_name}:{sig_result.signal_name}] ═══")
         logger.info(f"  Pair: {target_pair}")
         logger.info(f"  Side: {side}")
         logger.info(f"  Entry: ${sig_result.target_price:.8f}")
-        logger.info(f"  Quantity: {qty_str}")
-        logger.info(f"  Take-Profit: ${take_profit:.8f} (+{strategy_config.stop_take_percent*100:.2f}%)")
-        logger.info(f"  Stop-Loss: ${stop_loss:.8f} (-{strategy_config.stop_take_percent*100:.2f}%)")
+        logger.info(f"  Quantity: {qty_str} (steps={norm['steps']})")
+        logger.info(f"  Take-Profit: ${take_profit_str}")
+        logger.info(f"  Stop-Loss: ${stop_loss_str}")
         logger.info(f"  Index change: {sig_result.index_change:+.3f}%")
         logger.info(f"  Target change: {sig_result.target_change:+.3f}%")
+
         result = await self.client.place_market_order(
             category=strategy_config.get_market_category(),
             symbol=target_pair,
             side=side,
             qty=qty_str,
-            take_profit=f"{take_profit:.8f}",
-            stop_loss=f"{stop_loss:.8f}",
+            take_profit=take_profit_str,
+            stop_loss=stop_loss_str,
             position_idx=0,
         )
         if not result:
@@ -218,10 +238,10 @@ class PositionManager:
             symbol=target_pair,
             order_id=result.get("orderId", ""),
             side=side,
-            quantity=quantity,
+            quantity=float(norm["qty"]),
             entry_price=sig_result.target_price,
-            take_profit=take_profit,
-            stop_loss=stop_loss,
+            take_profit=float(norm["tp"]),
+            stop_loss=float(norm["sl"]),
             status="OPEN",
             opened_at=datetime.now(),
         )
@@ -237,9 +257,9 @@ class PositionManager:
             pair_name=sig_result.strategy_name,
             side=side,
             entry_price=sig_result.target_price,
-            quantity=quantity,
-            take_profit=take_profit,
-            stop_loss=stop_loss,
+            quantity=float(norm["qty"]),
+            take_profit=float(norm["tp"]),
+            stop_loss=float(norm["sl"]),
         )
         return True
 
@@ -281,8 +301,6 @@ class PositionManager:
                 f"[{pair.name}] Position size too small: ${position_size_usdt:.2f}. Minimum 5 USDT required."
             )
             return False
-        quantity = position_size_usdt / signal.target_price
-        qty_str = f"{quantity:.4f}"
         side = "Buy" if signal.action == "Buy" else "Sell"
         if signal.action == "Buy":
             take_profit = signal.target_price * (1 + pair.take_profit_percent / 100)
@@ -290,20 +308,39 @@ class PositionManager:
         else:
             take_profit = signal.target_price * (1 - pair.take_profit_percent / 100)
             stop_loss = signal.target_price * (1 + pair.stop_loss_percent / 100)
+
+        norm = await self.client.normalize_order(
+            category="linear",
+            symbol=pair.target_pair,
+            side=side,
+            last_price=signal.target_price,
+            position_size_usdt=position_size_usdt,
+            take_profit=take_profit,
+            stop_loss=stop_loss,
+        )
+        if norm is None:
+            logger.error(f"✗ [{pair.name}] Normalize order failed for {pair.target_pair}")
+            return False
+
+        qty_str = norm["qty_str"]
+        take_profit_str = norm["tp_str"]
+        stop_loss_str = norm["sl_str"]
+
         logger.info("")
         logger.info(f"📊 ═══ Opening Position [{pair.name}] ═══")
         logger.info(f"  Side: {side}")
         logger.info(f"  Entry: ${signal.target_price:.8f}")
-        logger.info(f"  Quantity: {qty_str}")
-        logger.info(f"  Take-Profit: ${take_profit:.8f} (+{pair.take_profit_percent}%)")
-        logger.info(f"  Stop-Loss: ${stop_loss:.8f} (-{pair.stop_loss_percent}%)")
+        logger.info(f"  Quantity: {qty_str} (steps={norm['steps']})")
+        logger.info(f"  Take-Profit: ${take_profit_str}")
+        logger.info(f"  Stop-Loss: ${stop_loss_str}")
+
         result = await self.client.place_market_order(
             category="linear",
             symbol=pair.target_pair,
             side=side,
             qty=qty_str,
-            take_profit=f"{take_profit:.8f}",
-            stop_loss=f"{stop_loss:.8f}",
+            take_profit=take_profit_str,
+            stop_loss=stop_loss_str,
             position_idx=0,
         )
         if not result:
@@ -314,10 +351,10 @@ class PositionManager:
             symbol=pair.target_pair,
             order_id=result.get("orderId", ""),
             side=side,
-            quantity=quantity,
+            quantity=float(norm["qty"]),
             entry_price=signal.target_price,
-            take_profit=take_profit,
-            stop_loss=stop_loss,
+            take_profit=float(norm["tp"]),
+            stop_loss=float(norm["sl"]),
             status="OPEN",
             opened_at=datetime.now(),
         )
@@ -333,9 +370,9 @@ class PositionManager:
             pair_name=pair.name,
             side=side,
             entry_price=signal.target_price,
-            quantity=quantity,
-            take_profit=take_profit,
-            stop_loss=stop_loss,
+            quantity=float(norm["qty"]),
+            take_profit=float(norm["tp"]),
+            stop_loss=float(norm["sl"]),
         )
         return True
 

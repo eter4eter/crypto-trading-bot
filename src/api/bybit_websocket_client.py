@@ -14,7 +14,7 @@ logger = get_app_logger()
 
 
 class WebSocket(_WebSocket):
-    def kline_stream(self, interval: str | int, symbol: (str, list), callback):
+    def kline_stream(self, interval: str | int, symbol: str | list, callback):
         """Subscribe to the klines stream.
 
         Push frequency: 1-60s
@@ -65,20 +65,19 @@ class BybitWebSocketClient(metaclass=Singleton):
 
         logger.info(f"BybitWebSocketClient initialized (testnet={testnet})")
 
-    async def connect(self):
+    async def connect(self) -> None:
         """Подключение к WebSocket"""
         self._loop = asyncio.get_running_loop()
-
         self.connected = True
         logger.info("✅ WebSocket ready")
 
-    def subscribe_kline(
-            self,
-            category: str,
-            symbol: str,
-            interval: str,
-            callback: Callable
-    ):
+    async def subscribe_kline(
+        self,
+        category: str,
+        symbol: str,
+        interval: str,
+        callback: Callable[[str, Kline], None]
+    ) -> bool:
         """
         Подписка на kline stream
 
@@ -92,32 +91,41 @@ class BybitWebSocketClient(metaclass=Singleton):
                     W (week)
                     M (month)
             callback: Функция обратного вызова
+            
+        Returns:
+            bool: True если подписка создана
         """
+        try:
+            ws_key = f"{category}_{symbol}_{interval}"
 
-        ws_key = f"{category}_{symbol}_{interval}"
+            # Создаём WebSocket для этой подписки
+            ws = WebSocket(
+                testnet=self.testnet,
+                channel_type=category,
+            )
 
-        # Создаем WebSocket для этой подписки
-        ws = WebSocket(
-            testnet=self.testnet,
-            # demo=self.demo, # не работает ?
-            channel_type=category,
-        )
+            self.ws_connections[ws_key] = ws
+            self.kline_callbacks[ws_key].append(callback)
 
-        self.ws_connections[ws_key] = ws
-        self.kline_callbacks[ws_key].append(callback)
+            # Подписываемся на kline
+            ws.kline_stream(
+                interval=interval,
+                symbol=symbol,
+                callback=lambda msg: self._handle_kline(ws_key, symbol, msg),
+            )
 
-        # Подписываемся на kline
-        ws.kline_stream(
-            interval=interval,
-            symbol=symbol,
-            callback=lambda msg: self._handle_kline(ws_key, symbol, msg),
-        )
+            logger.info(f"📊 Subscribed to kline: {symbol} ({interval} @ {category})")
+            
+            # Запускаем watchdog
+            self._start_watchdog(ws_key, category, symbol, interval, callback)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Ошибка создания WS подписки {symbol}@{interval}[{category}]: {e}")
+            return False
 
-        logger.info(f"📊 Subscribed to kline: {symbol} ({interval} @ {category})")
-
-        self._start_watchdog(ws_key, category, symbol, interval, callback)
-
-    def _handle_kline(self, ws_key: str, symbol: str, message: dict):
+    def _handle_kline(self, ws_key: str, symbol: str, message: dict) -> None:
         """
         Обработка kline сообщения
         msg: dict {
@@ -190,10 +198,10 @@ class BybitWebSocketClient(metaclass=Singleton):
         except Exception as e:
             logger.error(f"Error handling kline: {e}")
 
-    def _start_watchdog(self, ws_key: str, category: str, symbol: str, interval: str, callback: Callable):
+    def _start_watchdog(self, ws_key: str, category: str, symbol: str, interval: str, callback: Callable) -> None:
         """Запуск watchdog для отслеживания разрывов"""
 
-        async def watchdog():
+        async def watchdog() -> None:
             """Проверка активности соединения"""
             reconnect_count = 0
 
@@ -210,7 +218,7 @@ class BybitWebSocketClient(metaclass=Singleton):
                         if ws_key in self.ws_connections:
                             del self.ws_connections[ws_key]
 
-                        self.subscribe_kline(category, symbol, interval, callback)
+                        await self.subscribe_kline(category, symbol, interval, callback)
                         reconnect_count += 1
 
                         logger.info(f"✅ Reconnected {ws_key} (attempt {reconnect_count})")
@@ -222,7 +230,7 @@ class BybitWebSocketClient(metaclass=Singleton):
         task = asyncio.create_task(watchdog())
         self.reconnect_tasks[ws_key] = task
 
-    def close(self):
+    async def close(self) -> None:
         """Закрытие WebSocket соединений"""
         self.connected = False
 
@@ -230,6 +238,18 @@ class BybitWebSocketClient(metaclass=Singleton):
         for task in self.reconnect_tasks.values():
             if not task.done():
                 task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+        # Закрываем WebSocket соединения
+        for ws in self.ws_connections.values():
+            try:
+                if hasattr(ws, 'exit'):
+                    ws.exit()
+            except Exception as e:
+                logger.error(f"Error closing WebSocket: {e}")
 
         self.ws_connections.clear()
         self.reconnect_tasks.clear()
