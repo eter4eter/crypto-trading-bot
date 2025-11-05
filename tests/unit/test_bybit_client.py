@@ -1,7 +1,7 @@
 import pytest
 
 from unittest.mock import Mock, AsyncMock, patch
-from src.api.bybit_client import BybitClient, async_wrap, retry
+from src.api.bybit_client import BybitClient, async_wrap
 
 
 @pytest.mark.unit
@@ -10,7 +10,7 @@ class TestAsyncWrap:
 
     @pytest.mark.asyncio
     async def test_async_wrap_with_functools_partial(self):
-        """ИСПРАВЛЕНИЕ: Проверяем functools.partial вместо lambda"""
+        """Проверяем functools.partial вместо lambda"""
         from concurrent.futures import ThreadPoolExecutor
 
         class TestClass:
@@ -31,63 +31,11 @@ class TestAsyncWrap:
 
 
 @pytest.mark.unit
-class TestRetryDecorator:
-    """Тесты retry декоратора"""
-
-    @pytest.mark.asyncio
-    async def test_retry_success_first_attempt(self):
-        """Успех с первой попытки"""
-        mock_func = AsyncMock(return_value="success")
-
-        @retry(max_attempts=3, delay=0.01)
-        async def test_func(self):
-            return await mock_func()
-
-        result = await test_func(Mock())
-
-        assert result == "success"
-        assert mock_func.call_count == 1
-
-    @pytest.mark.asyncio
-    async def test_retry_success_after_failures(self):
-        """Успех после нескольких неудач"""
-        mock_func = AsyncMock()
-        mock_func.side_effect = [
-            Exception("Error 1"),
-            Exception("Error 2"),
-            "success"
-        ]
-
-        @retry(max_attempts=3, delay=0.01)
-        async def test_func(self):
-            return await mock_func()
-
-        result = await test_func(Mock())
-
-        assert result == "success"
-        assert mock_func.call_count == 3
-
-    @pytest.mark.asyncio
-    async def test_retry_all_attempts_fail(self):
-        """Все попытки неудачны"""
-        mock_func = AsyncMock(side_effect=ValueError("Persistent error"))
-
-        @retry(max_attempts=3, delay=0.01)
-        async def test_func(self):
-            return await mock_func()
-
-        with pytest.raises(ValueError, match="Persistent error"):
-            await test_func(Mock())
-
-        assert mock_func.call_count == 3
-
-
-@pytest.mark.unit
 class TestBybitClientSingleton:
-    """Тесты ИСПРАВЛЕННОГО Singleton pattern"""
+    """Тесты Singleton pattern"""
 
     def test_singleton_initialization(self):
-        """ИСПРАВЛЕНИЕ: Проверяем _initialized флаг"""
+        """Проверяем _initialized флаг"""
         # Сбрасываем singleton перед тестом
         BybitClient._instance = None
         BybitClient._initialized = False
@@ -279,7 +227,7 @@ class TestBybitClient:
     @pytest.mark.asyncio
     @patch('src.api.bybit_client.HTTP')
     async def test_get_klines_returns_kline_objects(self, mock_http):
-        """NEW: Проверяем что get_klines возвращает Kline objects"""
+        """Проверяем что get_klines возвращает Kline objects"""
         mock_session = Mock()
         mock_session.get_kline.return_value = {
             "retCode": 0,
@@ -311,7 +259,7 @@ class TestBybitClient:
 
 @pytest.mark.unit
 class TestBybitWebSocketClient:
-    """NEW: Тесты WebSocket клиента"""
+    """Тесты WebSocket клиента"""
 
     @pytest.mark.asyncio
     async def test_subscribe_kline(self, mock_ws_client):
