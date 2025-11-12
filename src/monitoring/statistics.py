@@ -1,37 +1,62 @@
-from datetime import datetime
+from datetime import datetime, date
+import os
 
 from ..logger import get_app_logger
 from ..storage.database import Database
 
 logger = get_app_logger()
 
-
 class StatisticsMonitor:
-    """Мониторинг и аналитика статистики"""
-
+    """Мониторинг и аналитика статистики с антиповтором для daily_report"""
+    
     def __init__(self, database: Database):
         self.database = database
+        self._last_daily_report_date = None
+        self._state_file = os.environ.get("STATISTICS_DAILYREPORT_STATE", ".daily_report_sent")
+        self._restore_last_report_date()
         logger.info("StatisticsMonitor initialized")
 
+    def _restore_last_report_date(self):
+        try:
+            if os.path.exists(self._state_file):
+                with open(self._state_file, "r") as f:
+                    date_str = f.read().strip()
+                    if date_str:
+                        self._last_daily_report_date = date.fromisoformat(date_str)
+        except Exception as e:
+            logger.warning(f"Failed to restore last daily report date: {e}")
+    
+    def _save_last_report_date(self, report_date: date):
+        try:
+            with open(self._state_file, "w") as f:
+                f.write(report_date.isoformat())
+        except Exception as e:
+            logger.warning(f"Failed to persist last daily report date: {e}")
+
+    def can_send_daily_report(self) -> bool:
+        today = date.today()
+        if self._last_daily_report_date == today:
+            return False
+        return True
+
+    def mark_daily_report_sent(self):
+        today = date.today()
+        self._last_daily_report_date = today
+        self._save_last_report_date(today)
+
     def get_today_stats(self) -> dict:
-        """Статистика за сегодня"""
         return self.database.get_statistics_summary(days=1)
 
     def get_week_stats(self) -> dict:
-        """Статистика за неделю"""
         return self.database.get_statistics_summary(days=7)
 
     def get_month_stats(self) -> dict:
-        """Статистика за месяц"""
         return self.database.get_statistics_summary(days=30)
 
     def get_comprehensive_report(self) -> dict:
-        """Комплексный отчет"""
-
         today = self.get_today_stats()
         week = self.get_week_stats()
         month = self.get_month_stats()
-
         return {
             "generated_at": datetime.now().isoformat(),
             "today": today,
@@ -40,14 +65,11 @@ class StatisticsMonitor:
         }
 
     def format_report(self, report: dict) -> str:
-        """Форматирование отчета для вывода"""
-
         lines = []
         lines.append("=" * 60)
         lines.append("TRADING STATISTICS REPORT")
         lines.append(f"Generated: {report['generated_at']}")
         lines.append("=" * 60)
-
         for period_name, period_data in [
             ("TODAY", report['today']),
             ("LAST 7 DAYS", report['last_7_days']),
@@ -61,7 +83,5 @@ class StatisticsMonitor:
             lines.append(f"  Avg P&L%: {period_data['avg_pnl_percent']:+.2f}%")
             lines.append(f"  Best Trade: {period_data['best_trade']:+.2f} USDT")
             lines.append(f"  Worst Trade: {period_data['worst_trade']:+.2f} USDT")
-
         lines.append("\n" + "=" * 60)
-
         return "\n".join(lines)
