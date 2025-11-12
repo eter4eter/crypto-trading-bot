@@ -6,7 +6,6 @@ from ..config import TelegramConfig
 
 logger = get_app_logger()
 
-
 class TelegramNotifier:
     def __init__(self, config: TelegramConfig):
         self.config = config
@@ -21,7 +20,6 @@ class TelegramNotifier:
     async def send_message(self, message: str, parse_mode: str = "HTML"):
         if not self.enabled:
             return
-
         try:
             async with aiohttp.ClientSession() as session:
                 payload = {
@@ -29,13 +27,11 @@ class TelegramNotifier:
                     "text": message,
                     "parse_mode": parse_mode,
                 }
-
                 async with session.post(self.api_url, json=payload) as response:
                     if response.status == 200:
                         logger.debug("Telegram message sent successfully")
                     else:
                         logger.error(f"Failed to send Telegram message: {response.status}")
-
         except Exception as e:
             logger.error(f"Error sending Telegram message: {e}")
 
@@ -47,16 +43,17 @@ class TelegramNotifier:
             quantity: float,
             take_profit: float,
             stop_loss: float,
+            symbol: str = None
     ):
         """Уведомление об открытии позиции"""
-
         if not self.config.notify_trades:
             return
-
-        message = f"""
+        sym_str = f"{symbol}" if symbol else pair_name
+        message = f'''
 ✅ <b>Позиция открыта</b>
 
-📊 Пара: <code>{pair_name}</code>
+📊 Стратегия: <code>{pair_name}</code>
+📈 Пара: <code>{sym_str}</code>
 📍 Направление: <b>{side}</b>
 💵 Вход: <code>${entry_price:.6f}</code>
 📦 Размер: <code>{quantity:.4f}</code>
@@ -65,8 +62,7 @@ class TelegramNotifier:
 ⛔ Stop-Loss: <code>${stop_loss:.6f}</code>
 
 ⏰ {datetime.now().strftime('%H:%M:%S')}
-"""
-
+'''
         await self.send_message(message)
 
     async def notify_trade_closed(
@@ -77,14 +73,10 @@ class TelegramNotifier:
             close_reason: str,
             duration_seconds: int,
     ):
-        """Уведомление о закрытии позиции"""
-
         if not self.config.notify_trades:
             return
-
         emoji = "✅" if pnl > 0 else "❌"
-
-        message = f"""
+        message = f'''
 {emoji} <b>Позиция закрыта</b>
 
 📊 Пара: <code>{pair_name}</code>
@@ -93,33 +85,25 @@ class TelegramNotifier:
 ⏱ Длительность: <code>{duration_seconds}s</code>
 
 ⏰ {datetime.now().strftime('%H:%M:%S')}
-"""
-
+'''
         await self.send_message(message)
 
     async def notify_error(self, error_message: str):
-        """Уведомление об ошибке"""
-
         if not self.config.notify_errors:
             return
-
-        message = f"""
+        message = f'''
 ⚠️ <b>Ошибка</b>
 
 {error_message}
 
 ⏰ {datetime.now().strftime('%H:%M:%S')}
-"""
-
+'''
         await self.send_message(message)
 
     async def notify_daily_report(self, stats: dict):
-        """Дневной отчет"""
-
         if not self.config.notify_daily_report:
             return
-
-        message = f"""
+        message = f'''
 📊 <b>Дневной отчет</b>
 
 📈 Сделок: <b>{stats['total_trades']}</b>
@@ -131,32 +115,5 @@ class TelegramNotifier:
 📉 Худшая: <b>{stats['worst_trade']:+.2f} USDT</b>
 
 ⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}
-"""
-
+'''
         await self.send_message(message)
-
-    async def notify_trade_opened(
-            self,
-            pair_name: str,
-            side: str,
-            entry_price: float,
-            quantity: float,
-            take_profit: float,
-            stop_loss: float
-    ):
-        """Уведомление об открытии позиции"""
-        if not self.enabled or not self.config.notify_trades:
-            return
-
-        message = (
-            f"📈 Позиция открыта\\n"
-            f"Пара: {pair_name}\\n"
-            f"Направление: {side}\\n"
-            f"Цена входа: ${entry_price:.8f}\\n"
-            f"Количество: {quantity}\\n"
-            f"Take Profit: ${take_profit:.8f}\\n"
-            f"Stop Loss: ${stop_loss:.8f}"
-        )
-
-        await self.send_message(message)
-
