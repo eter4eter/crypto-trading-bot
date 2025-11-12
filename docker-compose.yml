@@ -3,7 +3,7 @@ version: '3.8'
 services:
   bot:
     build: .
-    container_name: trading-bot-full
+    container_name: trading-bot
     restart: unless-stopped
     environment:
       - BYBIT_API_KEY=${BYBIT_API_KEY}
