@@ -3,7 +3,7 @@ version: '3.8'
 services:
   bot:
     build: .
-    container_name: trading-bot-full
+    container_name: trading-bot
     restart: unless-stopped
     environment:
       - BYBIT_API_KEY=${BYBIT_API_KEY}
@@ -15,8 +15,3 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
       - ./config:/app/config
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"

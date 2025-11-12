@@ -1,0 +1,92 @@
+{
+  "strategies": {
+    "WIF-USDT-threshold": {
+      "trade_pairs": [
+        "WIFUSDT"
+      ],
+      "leverage": 5,
+      "tick_window": 10,
+      "price_change_threshold": 0.05,
+      "stop_take_percent": 0.005,
+      "position_size": 100,
+      "direction": 0,
+      "enabled": true,
+      "signals": {
+        "btc_correlation": {
+          "index": "BTCUSDT",
+          "frame": "1s",
+          "tick_window": 30,
+          "index_change_threshold": 0.01,
+          "target": 0.05,
+          "direction": 0,
+          "reverse": 0
+        },
+        "eth_momentum": {
+          "index": "ETHUSDT",
+          "frame": "5",
+          "tick_window": 20,
+          "index_change_threshold": 0.015,
+          "target": 0.03,
+          "direction": 1,
+          "reverse": 1
+        }
+      }
+    },
+    "ETH-SOL-cross": {
+      "trade_pairs": [
+        "ETHUSDT",
+        "SOLUSDT"
+      ],
+      "leverage": 3,
+      "tick_window": 5,
+      "price_change_threshold": 0.04,
+      "stop_take_percent": 0.004,
+      "position_size": 50,
+      "direction": 0,
+      "enabled": true,
+      "signals": {
+        "btc_lead_indicator": {
+          "index": "BTCUSDT",
+          "frame": "1",
+          "tick_window": 15,
+          "index_change_threshold": 0.02,
+          "target": 0.04,
+          "direction": 0,
+          "reverse": 0
+        },
+        "short_term_momentum": {
+          "index": "ADAUSDT",
+          "frame": "5s",
+          "tick_window": 10,
+          "index_change_threshold": 0.008,
+          "target": 0.015,
+          "direction": 0,
+          "reverse": 0
+        }
+      }
+    },
+    "spot-demo": {
+      "trade_pairs": [
+        "ETHUSDT"
+      ],
+      "leverage": 1,
+      "tick_window": 3,
+      "price_change_threshold": 0.06,
+      "stop_take_percent": 0.003,
+      "position_size": 25,
+      "direction": 1,
+      "enabled": false,
+      "signals": {
+        "btc_bullish_only": {
+          "index": "BTCUSDT",
+          "frame": "3",
+          "tick_window": 5,
+          "index_change_threshold": 0.025,
+          "target": 0.02,
+          "direction": 1,
+          "reverse": 0
+        }
+      }
+    }
+  }
+}

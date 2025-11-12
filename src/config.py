@@ -49,7 +49,7 @@ class StrategyConfig:
         assert self.position_size > 0, "position_size должен быть > 0"
         
         # Для спота только direction=1
-        if self.leverage == 1:
+        if self.leverage == 1 and self.enabled:
             assert self.direction == 1, "Для spot (leverage=1) direction должен быть 1"
 
     def is_spot(self) -> bool:

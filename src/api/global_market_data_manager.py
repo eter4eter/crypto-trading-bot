@@ -1,5 +1,5 @@
 """
-Глобальный менеджер рыночных данных с поддержкой per-symbol market_category
+Глобальный менеджер рыночных данных с per-signal frame логикой
 """
 
 import asyncio
@@ -49,50 +49,58 @@ class GlobalMarketDataManager:
         self.registered_strategies: set[str] = set()
         self.is_running = False
 
-        logger.info("🌍 GlobalMarketDataManager инициализирован (per-symbol category)")
+        logger.info("🌍 GlobalMarketDataManager инициализирован (per-signal frame)")
 
-    # ===== helpers =====
     def _get_symbol_category(self, strategy_config: StrategyConfig, symbol: str) -> str:
-        if hasattr(strategy_config, "get_pair_category"):
-            try:
-                cat = strategy_config.get_pair_category(symbol)
-                if cat in ("spot", "linear"):
-                    return cat
-            except Exception:
-                pass
-        if hasattr(strategy_config, "get_market_category"):
-            cat = strategy_config.get_market_category()
-            return cat if cat in ("spot", "linear") else "linear"
-        return "linear"
+        """Определяем категорию для символа по strategy_config."""
+        try:
+            return strategy_config.get_pair_category(symbol)
+        except AttributeError:
+            return strategy_config.get_market_category()
 
-    def register_strategy(
+    def register_strategy_v2(
         self, strategy_config: StrategyConfig, kline_callback: Callable[[str, Kline], None]
     ) -> None:
+        """
+        Новая логика регистрации: для каждого сигнала с своим frame подписываем:
+        - index пару с signal.frame
+        - все trade_pairs с signal.frame
+        """
         name = strategy_config.name
         if name in self.registered_strategies:
             logger.warning(f"[{name}] Стратегия уже зарегистрирована")
             return
 
-        logger.info(f"[{name}] 📝 Регистрация стратегии (per-symbol category)...")
+        logger.info(f"[{name}] 📝 Регистрация стратегии (per-signal frame)...")
         count = 0
-        for _, sig in strategy_config.signals.items():
+        
+        for signal_name, sig in strategy_config.signals.items():
             source = "polling" if sig.frame.endswith("s") else "websocket"
-
-            # index
+            
+            # 1. index пара с своим frame
             idx_cat = self._get_symbol_category(strategy_config, sig.index)
             self._add_subscription(name, sig.index, sig.frame, idx_cat, kline_callback, source)
             count += 1
-
-            # targets
+            
+            # 2. все trade_pairs с этим же frame
             for pair in strategy_config.trade_pairs:
-                cat = self._get_symbol_category(strategy_config, pair)
-                self._add_subscription(name, pair, sig.frame, cat, kline_callback, source)
+                pair_cat = self._get_symbol_category(strategy_config, pair)
+                self._add_subscription(name, pair, sig.frame, pair_cat, kline_callback, source)
                 count += 1
+                
+            logger.info(f"   [{signal_name}] @ {sig.frame}: {sig.index} + {len(strategy_config.trade_pairs)} targets")
 
         self.registered_strategies.add(name)
-        logger.info(f"[{name}] ✅ Зарегистрировано {count} подписок (per-symbol category)")
+        logger.info(f"[{name}] ✅ Зарегистрировано {count} подписок (per-signal frame)")
+        
         if self.is_running:
             asyncio.create_task(self._activate_new_subscriptions(name))
+
+    def register_strategy(
+        self, strategy_config: StrategyConfig, kline_callback: Callable[[str, Kline], None]
+    ) -> None:
+        """Основная точка входа для регистрации - используем новую логику."""
+        self.register_strategy_v2(strategy_config, kline_callback)
 
     def _add_subscription(
         self,
@@ -114,13 +122,15 @@ class GlobalMarketDataManager:
         if self.is_running:
             logger.warning("GlobalMarketDataManager уже запущен")
             return
-        logger.info("🚀 Запуск GlobalMarketDataManager (per-symbol category)...")
+        logger.info("🚀 Запуск GlobalMarketDataManager (per-signal frame)...")
         await self._start_websocket_subscriptions()
         await self._start_polling_tasks()
         self.is_running = True
+        
         total = len(self.subscriptions)
         polling = sum(1 for subs in self.subscriptions.values() for s in subs if s.source_type == "polling")
         ws = sum(1 for subs in self.subscriptions.values() for s in subs if s.source_type == "websocket")
+        
         logger.info("")
         logger.info("🌍 ═══ GLOBAL MARKET DATA MANAGER ACTIVE ═══")
         logger.info(f"   Keys (symbol@frame@category): {total}")
@@ -152,7 +162,6 @@ class GlobalMarketDataManager:
         for key in to_delete:
             del self.subscriptions[key]
             if key in self.active_ws_subscriptions:
-                # TODO: отписка от WS на клиенте
                 self.active_ws_subscriptions.remove(key)
         self.registered_strategies.remove(strategy_name)
         logger.info(f"[{strategy_name}] ✅ Отмена регистрации завершена")
@@ -169,7 +178,7 @@ class GlobalMarketDataManager:
         logger.info(f"Запуск {len(ws_keys)} WebSocket подписок...")
         for symbol, frame, category in ws_keys:
             try:
-                self.ws_client.subscribe_kline(
+                await self.ws_client.subscribe_kline(
                     category=category,
                     symbol=symbol,
                     interval=frame,
@@ -184,7 +193,7 @@ class GlobalMarketDataManager:
     async def _ws_callback(self, symbol: str, kline: Kline) -> None:
         if not kline.confirm:
             return
-        # Транслируем во все подписки по этому symbol (frame у WS evt не приходит — отправим всем подходящим)
+        # Транслируем во все подписки по этому symbol
         for (sub_symbol, sub_frame, sub_cat), subs in self.subscriptions.items():
             if sub_symbol != symbol:
                 continue
